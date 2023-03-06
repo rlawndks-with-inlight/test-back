@@ -145,7 +145,7 @@ const onSignUp = async (req, res) => {
         const profile_img = req.body.profile_img ?? "";
 
 
-        let sql = "SELECT * FROM user_table WHERE id=? OR nickname=? ";
+        let sql = "SELECT * FROM user_table WHERE id=? ";
 
 
         db.query(sql, [id, nickname, -10], async (err, result) => {
@@ -155,10 +155,6 @@ const onSignUp = async (req, res) => {
                 for (i = 0; i < result.length; i++) {
                     if (result[i].id == id) {
                         msg = "아이디가 중복됩니다.";
-                        break;
-                    }
-                    if (result[i].nickname == nickname) {
-                        msg = "닉네임이 중복됩니다.";
                         break;
                     }
                     if (result[i].user_level == -10 && result[i].phone == phone) {
@@ -1045,21 +1041,11 @@ const getHomeContent = async (req, res) => {
     try {
         let result_list = [];
         let sql_list = [
-            { table: 'banner', sql: 'SELECT * FROM setting_table ORDER BY pk DESC LIMIT 1', type: 'obj' },
-            { table: 'best_academy', sql: 'SELECT academy_category_table.*,user_table.nickname AS user_nickname FROM academy_category_table LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk WHERE academy_category_table.is_best=1 AND academy_category_table.status=1 ORDER BY academy_category_table.sort DESC LIMIT 4', type: 'list' },
-            { table: 'best_comment', sql: 'SELECT * FROM comment_table WHERE is_best=1 AND category_pk=1 ORDER BY pk DESC LIMIT 4', type: 'list' },
             { table: 'notice', sql: 'SELECT notice_table.*, user_table.nickname FROM notice_table LEFT JOIN user_table ON notice_table.user_pk=user_table.pk WHERE notice_table.status=1 ORDER BY notice_table.sort DESC LIMIT 3', type: 'list' },
-            { table: 'app', sql: 'SELECT * FROM app_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
-            { table: 'main_video', sql: 'SELECT * FROM main_video_table WHERE status=1 ORDER BY sort DESC', type: 'list' },
-            { table: 'best_review', sql: '', type: 'list' },
+            { table: 'setting', sql: 'SELECT * FROM setting_table', type: 'obj' },
         ];
 
         for (var i = 0; i < sql_list.length; i++) {
-            if (sql_list[i]?.table == 'best_review') {
-                sql_list[i].sql = 'SELECT review_table.*, academy_category_table.main_img FROM review_table ';
-                sql_list[i].sql += ` LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
-                sql_list[i].sql += ` WHERE review_table.is_best=1 ORDER BY pk DESC `;
-            }
             result_list.push(queryPromise(sql_list[i]?.table, sql_list[i]?.sql));
         }
         for (var i = 0; i < result_list.length; i++) {
