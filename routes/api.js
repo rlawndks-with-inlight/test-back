@@ -130,6 +130,7 @@ const onSignUp = async (req, res) => {
         const id = req.body.id ?? "";
         const pw = req.body.pw ?? "";
         const name = req.body.name ?? "";
+        const id_number = req.body.id_number ?? "";
         const nickname = req.body.nickname ?? "";
         const phone = req.body.phone ?? "";
         const address = req.body.address ?? "";
@@ -142,8 +143,10 @@ const onSignUp = async (req, res) => {
         const user_level = req.body.user_level ?? 0;
         const type_num = req.body.type_num ?? 0;
         const profile_img = req.body.profile_img ?? "";
-        //중복 체크 
+
+
         let sql = "SELECT * FROM user_table WHERE id=? OR nickname=? ";
+
 
         db.query(sql, [id, nickname, -10], async (err, result) => {
             if (result.length > 0) {
@@ -184,8 +187,8 @@ const onSignUp = async (req, res) => {
                                     return response(req, res, -200, "비밀번호 암호화 도중 에러 발생", [])
                                 }
 
-                                sql = 'INSERT INTO user_table (id, pw, name, nickname , phone, user_level, type, profile_img, address, address_detail, zip_code, account_holder, bank_name, account_number, manager_note ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-                                await db.query(sql, [id, hash, name, nickname, phone, user_level, type_num, profile_img, address, address_detail, zip_code, account_holder, bank_name, account_number, manager_note], async (err, result) => {
+                                sql = 'INSERT INTO user_table (id, pw, name, nickname , phone, user_level, type, profile_img, id_number, address, address_detail, zip_code, account_holder, bank_name, account_number, manager_note ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                                await db.query(sql, [id, hash, name, nickname, phone, user_level, type_num, id_number, profile_img, address, address_detail, zip_code, account_holder, bank_name, account_number, manager_note], async (err, result) => {
 
                                     if (err) {
                                         console.log(err)
@@ -233,22 +236,23 @@ const onLoginById = async (req, res) => {
                         if (hash == result1[0].pw) {
                             try {
                                 const token = jwt.sign({
-                                    pk: result1[0].pk,
-                                    nickname: result1[0].nickname,
-                                    id: result1[0].id,
-                                    user_level: result1[0].user_level,
-                                    phone: result1[0].phone,
-                                    profile_img: result1[0].profile_img,
-                                    type: result1[0].type
+                                    pk: result1[0].pk ?? 0,
+                                    nickname: result1[0].nickname ?? "",
+                                    name: result1[0].name ?? "",
+                                    id: result1[0].id ?? "",
+                                    user_level: result1[0].user_level ?? -1,
+                                    phone: result1[0].phone ?? "",
+                                    profile_img: result1[0].profile_img ?? "",
+                                    type: result1[0].type ?? -1
                                 },
                                     jwtSecret,
                                     {
                                         expiresIn: '60000m',
                                         issuer: 'fori',
                                     });
-                                res.cookie("token", token, { 
-                                    httpOnly: true, 
-                                    maxAge: 60 * 60 * 1000 * 10 * 10 * 10, 
+                                res.cookie("token", token, {
+                                    httpOnly: true,
+                                    maxAge: 60 * 60 * 1000 * 10 * 10 * 10,
                                     //sameSite: 'none', 
                                     //secure: true 
                                 });
@@ -258,7 +262,7 @@ const onLoginById = async (req, res) => {
                                         return response(req, res, -200, "서버 에러 발생", [])
                                     }
                                 })
-                                return response(req, res, 200, result1[0].nickname + ' 님 환영합니다.', result1[0]);
+                                return response(req, res, 200, '환영합니다.', result1[0]);
                             } catch (e) {
                                 console.log(e)
                                 return response(req, res, -200, "서버 에러 발생", [])
@@ -689,6 +693,7 @@ const getUserToken = (req, res) => {
         if (decode) {
             let pk = decode.pk;
             let nickname = decode.nickname;
+            let name = decode.name;
             let id = decode.id;
             let phone = decode.phone;
             let user_level = decode.user_level;
@@ -3307,23 +3312,23 @@ const checkClassStatus = async (req, res) => {
     }
 }
 function excelDateToJSDate(serial) {
-    var utc_days  = Math.floor(serial - 25569);
-    var utc_value = utc_days * 86400;                                        
+    var utc_days = Math.floor(serial - 25569);
+    var utc_value = utc_days * 86400;
     var date_info = new Date(utc_value * 1000);
- 
+
     var fractional_day = serial - Math.floor(serial) + 0.0000001;
- 
+
     var total_seconds = Math.floor(86400 * fractional_day);
- 
+
     var seconds = total_seconds % 60;
- 
+
     total_seconds -= seconds;
- 
+
     var hours = Math.floor(total_seconds / (60 * 60));
     var minutes = Math.floor(total_seconds / 60) % 60;
- 
+
     return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate(), hours, minutes, seconds);
- }
+}
 const insertUserMoneyByExcel = async (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 40);
@@ -3384,11 +3389,11 @@ const insertUserMoneyByExcel = async (req, res) => {
                 } else {
                     date = list[i][4] + ' 00:00:00';
                 }
-                if(typeof list[i][2] == 'string'){
-                    list[i][2] = list[i][2].replaceAll(',','');
+                if (typeof list[i][2] == 'string') {
+                    list[i][2] = list[i][2].replaceAll(',', '');
                 }
-                if(typeof list[i][3] == 'string'){
-                    list[i][3] = list[i][3].replaceAll(',','');
+                if (typeof list[i][3] == 'string') {
+                    list[i][3] = list[i][3].replaceAll(',', '');
                 }
                 if ((list[i][2] && isNaN(parseInt(list[i][2]))) && (list[i][3] && isNaN(parseInt(list[i][3])))) {
                     return response(req, res, -100, `승인금액 또는 취소금액에 숫자 이외의 값이 감지 되었습니다.`, []);
@@ -3399,20 +3404,20 @@ const insertUserMoneyByExcel = async (req, res) => {
                 if (parseInt(list[i][2]) < 0 || parseInt(list[i][3]) < 0) {
                     return response(req, res, -100, `승인금액과 취소금액에 음수를 넣을 수 없습니다.`, []);
                 }
-                if(list[i][2] && parseInt(list[i][2]) > 0){
+                if (list[i][2] && parseInt(list[i][2]) > 0) {
                     price = parseInt(list[i][2]);
                     transaction_status = 0;
                 }
-                if(list[i][3] && parseInt(list[i][3]) > 0){
-                    price = parseInt(list[i][3])*(-1);
+                if (list[i][3] && parseInt(list[i][3]) > 0) {
+                    price = parseInt(list[i][3]) * (-1);
                     transaction_status = -1;
                 }
-                let pay_type_list = ['카드결제','무통장입금','기타'];
-                if(!pay_type_list.includes(list[i][5])){
+                let pay_type_list = ['카드결제', '무통장입금', '기타'];
+                if (!pay_type_list.includes(list[i][5])) {
                     return response(req, res, -100, `결제타입에 카드결제, 무통장입금, 기타 중 하나를 입력해주세요`, []);
-                }else{
-                    for(var j = 0;j<pay_type_list.length;j++){
-                        if(list[i][5] == pay_type_list[j]){
+                } else {
+                    for (var j = 0; j < pay_type_list.length; j++) {
+                        if (list[i][5] == pay_type_list[j]) {
                             type = j;
                         }
                     }
@@ -3429,7 +3434,7 @@ const insertUserMoneyByExcel = async (req, res) => {
                 ])
             }
             await db.beginTransaction();
-            let result = await insertQuery(`INSERT INTO subscribe_table (user_pk, academy_category_pk, master_pk, price, status, trade_date, type, transaction_status) VALUES ? `,[insert_list]);
+            let result = await insertQuery(`INSERT INTO subscribe_table (user_pk, academy_category_pk, master_pk, price, status, trade_date, type, transaction_status) VALUES ? `, [insert_list]);
             await db.commit();
             return response(req, res, 100, "success", []);
         } else {
