@@ -184,7 +184,7 @@ const onSignUp = async (req, res) => {
                                 }
 
                                 sql = 'INSERT INTO user_table (id, pw, name, nickname , phone, user_level, type, profile_img, id_number, address, address_detail, zip_code, account_holder, bank_name, account_number, manager_note ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-                                await db.query(sql, [id, hash, name, nickname, phone, user_level, type_num, id_number, profile_img, address, address_detail, zip_code, account_holder, bank_name, account_number, manager_note], async (err, result) => {
+                                await db.query(sql, [id, hash, name, nickname, phone, user_level, type_num, profile_img, id_number, address, address_detail, zip_code, account_holder, bank_name, account_number, manager_note], async (err, result) => {
 
                                     if (err) {
                                         console.log(err)
