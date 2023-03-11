@@ -1041,7 +1041,7 @@ const getHomeContent = async (req, res) => {
     try {
         let result_list = [];
         let sql_list = [
-            { table: 'notice', sql: 'SELECT notice_table.*, user_table.nickname FROM notice_table LEFT JOIN user_table ON notice_table.user_pk=user_table.pk WHERE notice_table.status=1 ORDER BY notice_table.sort DESC LIMIT 3', type: 'list' },
+            { table: 'notice', sql: 'SELECT notice_table.*, user_table.nickname FROM notice_table LEFT JOIN user_table ON notice_table.user_pk=user_table.pk WHERE notice_table.status=1 ORDER BY notice_table.sort DESC LIMIT 2', type: 'list' },
             { table: 'setting', sql: 'SELECT * FROM setting_table', type: 'obj' },
         ];
 
