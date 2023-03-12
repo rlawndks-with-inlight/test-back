@@ -6,10 +6,10 @@ const cors = require('cors')
 const db = require('./config/db')
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
-const https = require('https')
+const https = require('https');
+const http = require('http');
 const port = 8001;
 app.use(cors());
-const http = require('http')
 require('dotenv').config()
 const im = require('imagemagick');
 const sharp = require('sharp')
@@ -31,7 +31,7 @@ const schedule = require('node-schedule');
 
 const path = require('path');
 const { insertQuery } = require('./query-util')
-const { getItem } = require('./routes/api')
+const { getItem } = require('./routes/common')
 app.set('/routes', __dirname + '/routes');
 app.use('/config', express.static(__dirname + '/config'));
 //app.use('/image', express.static('./upload'));
@@ -98,6 +98,7 @@ const scheduleAlarm = () => {
                 }
         })
 }
+
 let server = undefined
 if (is_test) {
         server = http.createServer(app).listen(HTTP_PORT, function () {
