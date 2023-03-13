@@ -3,13 +3,13 @@ const router = express.Router();
 const { upload } = require('../config/multerConfig')
 const {
     onLoginById, getUserToken, onLogout, checkExistId, checkPassword, checkExistIdByManager, checkExistNickname, sendSms, kakaoCallBack, editMyInfo, uploadProfile, onLoginBySns, getMyInfo,//auth
-    getUsers, getItems, getHomeContent, getSetting, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, addImageItems,//select
+    getUsers, getItems, getSetting, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, addImageItems,//select
     onSignUp, addItem, addItemByUser, addNoteImage, addSetting, addComment, addAlarm, addPopup, insertUserMoneyByExcel,//insert 
     updateUser, updateItem, updateSetting, updateStatus, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
     deleteItem, onResign, getMyItems, getMyItem, onSubscribe, updateSubscribe, getHeaderContent, onKeyrecieve, onNotiKiwoom
 } = require('./common');
 const {
-    addContract
+    addContract, getHomeContent, updateContract, requestContractAppr, confirmContractAppr, onResetContractUser
 } = require('./user');
 const image_list = [
     { name: 'master' },
@@ -70,6 +70,10 @@ router.get('/keyrecieve/:pk/:device', onKeyrecieve);
 
 router.get('/noti/kiwoom', onNotiKiwoom);
 router.post('/addcontract', addContract);
+router.post('/updatecontract', updateContract);
+router.post('/requestcontractappr', requestContractAppr);
+router.post('/confirmcontractappr', confirmContractAppr);
+router.post('/onresetcontractuser', onResetContractUser);
 
 
 router.post('/updatesetting', upload.fields([{ name: 'content' }, { name: 'content2' }]), updateSetting);

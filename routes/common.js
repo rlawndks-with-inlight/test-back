@@ -826,39 +826,6 @@ const updateUser = async (req, res) => {
     }
 }
 
-
-const getHomeContent = async (req, res) => {
-    try {
-        let result_list = [];
-        let sql_list = [
-            { table: 'notice', sql: 'SELECT notice_table.*, user_table.nickname FROM notice_table LEFT JOIN user_table ON notice_table.user_pk=user_table.pk WHERE notice_table.status=1 ORDER BY notice_table.sort DESC LIMIT 2', type: 'list' },
-            { table: 'setting', sql: 'SELECT * FROM setting_table', type: 'obj' },
-        ];
-
-        for (var i = 0; i < sql_list.length; i++) {
-            result_list.push(queryPromise(sql_list[i]?.table, sql_list[i]?.sql));
-        }
-        for (var i = 0; i < result_list.length; i++) {
-            await result_list[i];
-        }
-        let result_obj = {};
-        for (var i = 0; i < sql_list.length; i++) {
-            result_list.push(queryPromise(sql_list[i].table, sql_list[i].sql, sql_list[i].type));
-        }
-        for (var i = 0; i < result_list.length; i++) {
-            await result_list[i];
-        }
-        let result = (await when(result_list));
-        for (var i = 0; i < (await result).length; i++) {
-            result_obj[(await result[i])?.table] = (await result[i])?.data;
-        }
-        return response(req, res, 100, "success", result_obj)
-
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
 const getHeaderContent = async (req, res) => {
     try {
         let result_list = [];
@@ -2416,7 +2383,7 @@ const onNotiKiwoom = (req, res) => {
 
 module.exports = {
     onLoginById, getUserToken, onLogout, checkExistId, checkPassword, checkExistIdByManager, checkExistNickname, sendSms, kakaoCallBack, editMyInfo, uploadProfile, onLoginBySns, getMyInfo,//auth
-    getUsers, getItems, getHomeContent, getSetting, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, addImageItems,//select
+    getUsers, getItems, getSetting, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, addImageItems,//select
     onSignUp, addItem, addItemByUser, addNoteImage, addSetting, addComment, addAlarm, addPopup, insertUserMoneyByExcel,//insert 
     updateUser, updateItem, updateSetting, updateStatus, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
     deleteItem, onResign, getMyItems, getMyItem, onSubscribe, updateSubscribe, getHeaderContent, onKeyrecieve, onNotiKiwoom

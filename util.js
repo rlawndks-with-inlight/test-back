@@ -305,9 +305,9 @@ function response(req, res, code, message, data) {
         'data': data,
     }
     const decode = checkLevel(req.cookies.token, 0)
-     if (code < 0 || req.originalUrl.includes('login') || req.originalUrl.includes('delete') || req.originalUrl.includes('insertpayresult') || concentration_user_list.includes(decode?.pk)) {
-         logRequestResponse(req, resDict, decode);
-     }
+    if (code < 0 || req.originalUrl.includes('login') || req.originalUrl.includes('delete') || req.originalUrl.includes('insertpayresult') || concentration_user_list.includes(decode?.pk)) {
+        logRequestResponse(req, resDict, decode);
+    }
     res.send(resDict);
 }
 function nullResponse(req, res) {
@@ -318,7 +318,7 @@ function lowLevelResponse(req, res) {
 }
 const returnMoment = (d) => {
     var today = new Date();
-    if(d){
+    if (d) {
         today = d;
     }
     var year = today.getFullYear();
@@ -362,33 +362,57 @@ const getKewordListBySchema = (schema_) => {
     if (schema == 'user') {
         list = ['id', 'name', 'phone', 'id_number'];
     } else if (schema == 'comment') {
-        list = ['user_table.id','user_table.nickname', 'note','item_title'];
-    }  else if (schema == 'subscribe') {
-        list = ['u_t.id','u_t.nickname', 'u_t.name','u_t.phone' ];
+        list = ['user_table.id', 'user_table.nickname', 'note', 'item_title'];
+    } else if (schema == 'subscribe') {
+        list = ['u_t.id', 'u_t.nickname', 'u_t.name', 'u_t.phone'];
     } else if (schema == 'academy_category') {
-        list = ['title','user_table.nickname'];
+        list = ['title', 'user_table.nickname'];
     } else if (schema == 'academy') {
-        list = ['academy_table.title','academy_category_table.title'];
+        list = ['academy_table.title', 'academy_category_table.title'];
     } else if (schema == 'app') {
         list = ['name'];
     } else if (schema == 'popup') {
         list = ['link'];
     } else if (schema == 'request') {
-        list = ['user_table.id','user_table.nickname', 'title'];
-    }else if (schema == 'faq') {
+        list = ['user_table.id', 'user_table.nickname', 'title'];
+    } else if (schema == 'faq') {
         list = ['title'];
-    }else if (schema == 'event') {
+    } else if (schema == 'event') {
         list = ['title'];
-    }else if (schema == 'notice') {
+    } else if (schema == 'notice') {
         list = ['title'];
-    }else if (schema == 'review') {
-        list = ['review_table.title','user_table.nickname'];
-    }else if (schema == 'alarm') {
+    } else if (schema == 'review') {
+        list = ['review_table.title', 'user_table.nickname'];
+    } else if (schema == 'alarm') {
         list = [];
-    }else {
+    } else {
         link = [];
     }
     return list;
+}
+const getEnLevelByNum = (num) => {
+    if (num == 0)
+        return 'lessee';
+    else if (num == 5)
+        return 'landlord';
+    else if (num == 10)
+        return 'realtor';
+    else if (num == 40)
+        return 'manager';
+    else if (num == 50)
+        return 'developer';
+}
+const getKoLevelByNum = (num) => {
+    if (num == 0)
+        return '임차인';
+    else if (num == 5)
+        return '임대인';
+    else if (num == 10)
+        return '공인중개사';
+    else if (num == 40)
+        return '관리자';
+    else if (num == 50)
+        return '개발자';
 }
 const commarNumber = (num) => {
     let str = "";
@@ -397,7 +421,7 @@ const commarNumber = (num) => {
     } else {
         str = num;
     }
-    if(!str){
+    if (!str) {
         return "---";
     }
     let result = "";
@@ -415,5 +439,5 @@ module.exports = {
     getUserPKArrStrWithNewPK, isNotNullOrUndefined,
     namingImagesPath, getSQLnParams,
     nullResponse, lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, categoryToNumber, sendAlarm, makeMaxPage, tooMuchRequest,
-    queryPromise, makeHash, commarNumber, getKewordListBySchema
+    queryPromise, makeHash, commarNumber, getKewordListBySchema, getEnLevelByNum, getKoLevelByNum
 }
