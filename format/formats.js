@@ -1,4 +1,4 @@
-const { commarNumber } = require("../util");
+const { commarNumber, getEnLevelByNum } = require("../util");
 
 const listFormatBySchema = (schema, data_) => {
 
@@ -38,7 +38,7 @@ const listFormatBySchema = (schema, data_) => {
     }
     return data;
 }
-const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_) => {
+const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_, decode) => {
     let sql = sql_;
     let page_sql = page_sql_;
     let order = order_;
@@ -58,10 +58,13 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_) => {
         sql += ` LEFT JOIN user_table ON notice_table.user_pk=user_table.pk `;
         order = 'notice_table.sort'
     }else if(schema=='request'){
-        sql = ` SELECT request_table.*, user_table.nickname AS nickname, user_table.id AS id FROM request_table`;
+        sql = ` SELECT request_table.*, user_table.nickname AS nickname, user_table.id_number AS id_number, user_table.id AS id FROM request_table`;
         page_sql += ` LEFT JOIN user_table ON request_table.user_pk=user_table.pk `;
         sql += ` LEFT JOIN user_table ON request_table.user_pk=user_table.pk `;
         order = 'pk'
+        if(decode?.user_level==0 ||decode?.user_level==5 ||decode?.user_level==10 ){
+            where_str += ` AND user_pk=${decode?.pk} `
+        }
     }else if(schema=='comment'){
         sql = ` SELECT comment_table.*, user_table.nickname AS nickname, user_table.id AS id FROM comment_table`;
         page_sql += ` LEFT JOIN user_table ON comment_table.user_pk=user_table.pk `;
@@ -82,6 +85,13 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_) => {
         page_sql += ` LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
         sql += ` LEFT JOIN user_table ON review_table.user_pk=user_table.pk `;
         sql += ` LEFT JOIN academy_category_table ON review_table.academy_category_pk=academy_category_table.pk `;
+        order = 'pk'
+    }else if(schema=='contract'){
+        sql = ` SELECT * FROM v_contract `;
+        page_sql = ` SELECT COUNT(*) FROM v_contract `
+        if(decode?.user_level==0 ||decode?.user_level==5 ||decode?.user_level==10 ){
+            where_str += ` AND ${getEnLevelByNum(decode?.user_level)}_pk=${decode?.pk} `
+        }
         order = 'pk'
     }
     return {

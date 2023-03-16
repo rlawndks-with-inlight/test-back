@@ -12,7 +12,9 @@ const when = require('when')
 let iconv = require('iconv-lite');
 const { checkLevel, getSQLnParams, getUserPKArrStrWithNewPK,
     isNotNullOrUndefined, namingImagesPath, nullResponse,
-    lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, categoryToNumber, sendAlarm, makeMaxPage, queryPromise, makeHash, commarNumber, getKewordListBySchema
+    lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, 
+    categoryToNumber, sendAlarm, makeMaxPage, queryPromise, makeHash, commarNumber, getKewordListBySchema,
+    getQuestions
 } = require('../util')
 const {
     getRowsNumWithKeyword, getRowsNum, getAllDatas,
@@ -122,91 +124,80 @@ const updateAlarm = (req, res) => {
 const onSignUp = async (req, res) => {
     try {
         //logRequest(req)
-        const id = req.body.id ?? "";
-        const pw = req.body.pw ?? "";
-        const name = req.body.name ?? "";
-        const id_number = req.body.id_number ?? "";
-        const nickname = req.body.nickname ?? "";
-        const phone = req.body.phone ?? "";
-        const address = req.body.address ?? "";
-        const address_detail = req.body.address_detail ?? "";
-        const zip_code = req.body.zip_code ?? "";
-        const account_holder = req.body.account_holder ?? "";
-        const bank_name = req.body.bank_name ?? "";
-        const account_number = req.body.account_number ?? "";
-        const manager_note = req.body.manager_note ?? "";
-        const user_level = req.body.user_level ?? 0;
-        const type_num = req.body.type_num ?? 0;
-        const profile_img = req.body.profile_img ?? "";
-
-
+        const {
+            id,
+            name,
+            id_number,
+            nickname,
+            phone,
+            address,
+            address_detail,
+            zip_code,
+            user_level,
+            type,
+            profile_img,
+            company_number,
+            office_name,
+            office_number,
+            office_classification,
+            broker_classification,
+            status_classification,
+        } = req.body;
+        let pw = req.body.pw ?? "";
+        
         let sql = "SELECT * FROM user_table WHERE id=? ";
 
-
-        db.query(sql, [id, nickname, -10], async (err, result) => {
-            if (result.length > 0) {
-                let msg = "";
-                let i = 0;
-                for (i = 0; i < result.length; i++) {
-                    if (result[i].id == id) {
-                        msg = "아이디가 중복됩니다.";
-                        break;
-                    }
-                    if (result[i].user_level == -10 && result[i].phone == phone) {
-                        msg = "가입할 수 없습니다.";
-                        break;
-                    }
-                }
-                return response(req, res, -200, msg, [])
-
-            } else {
-                await db.query("SELECT * FROM user_table WHERE user_level=-10", async (err, result) => {
-                    if (err) {
-                        console.log(err)
-                        return response(req, res, -200, "비밀번호 암호화 도중 에러 발생", [])
-                    } else {
-                        console.log(result.map(item => item.phone))
-                        if (result.map(item => item.phone).includes(phone)) {
-                            return response(req, res, -100, "가입할 수 없는 전화번호 입니다.", [])
-                        } else {
-                            await crypto.pbkdf2(pw, salt, saltRounds, pwBytes, 'sha512', async (err, decoded) => {
-                                // bcrypt.hash(pw, salt, async (err, hash) => {
-                                let hash = decoded.toString('base64')
-
-                                if (err) {
-                                    console.log(err)
-                                    return response(req, res, -200, "비밀번호 암호화 도중 에러 발생", [])
-                                }
-
-                                sql = 'INSERT INTO user_table (id, pw, name, nickname , phone, user_level, type, profile_img, id_number, address, address_detail, zip_code, account_holder, bank_name, account_number, manager_note ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-                                await db.query(sql, [id, hash, name, nickname, phone, user_level, type_num, profile_img, id_number, address, address_detail, zip_code, account_holder, bank_name, account_number, manager_note], async (err, result) => {
-
-                                    if (err) {
-                                        console.log(err)
-                                        return response(req, res, -200, "회원 추가 실패", [])
-                                    }
-                                    else {
-                                        await db.query("UPDATE user_table SET sort=? WHERE pk=?", [result?.insertId, result?.insertId], (err, resultup) => {
-                                            if (err) {
-                                                console.log(err)
-                                                return response(req, res, -200, "회원 추가 실패", [])
-                                            }
-                                            else {
-                                                return response(req, res, 200, "회원 추가 성공", [])
-                                            }
-                                        })
-                                    }
-                                })
-                            })
-                        }
-                    }
-                })
-
+        let find_user = await dbQueryList(`SELECT * FROM user_table WHERE id=?`,[id]);
+        find_user = find_user?.result;
+        if(find_user.length>0){
+            return response(req, res, -100, "아이디가 중복됩니다.", []);
+        }
+        let find_phone = await dbQueryList(`SELECT * FROM user_table WHERE phone=?`,[phone]);
+        find_phone = find_phone?.result;
+        if(find_phone.length>0){
+            return response(req, res, -100, "휴대폰번호가 중복됩니다.", []);
+        }
+        pw = await makeHash(pw);
+        pw = pw?.data;
+        let insert_obj = {
+            id,
+            pw,
+            name,
+            id_number,
+            nickname,
+            phone,
+            address,
+            address_detail,
+            zip_code,
+            user_level,
+            type,
+            profile_img,
+            company_number,
+            office_name,
+            office_number,
+            office_classification,
+            broker_classification,
+            status_classification,
+        }
+        let type_number = ['user_level','type']
+        let insertKeys = Object.keys(insert_obj);
+        let insertValues = [];
+        for(var i = 0;i<insertKeys.length;i++){
+            if(type_number.includes(insertKeys[i])){
+                insertValues.push(insert_obj[insertKeys[i]]??0);
+            }else{
+                insertValues.push(insert_obj[insertKeys[i]]??"");
             }
-        })
+        }
+        await db.beginTransaction();
+        let result = await insertQuery(`INSERT INTO user_table (${insertKeys.join()}) VALUES (${getQuestions(insertKeys.length).join()})`,insertValues);
+        let result2 = await insertQuery("UPDATE user_table SET sort=? WHERE pk=?", [result?.result?.insertId, result?.result?.insertId]);
+        await db.commit();
+        return response(req, res, 200, "success", []);
 
     } catch (err) {
-        console.log(err)
+        console.log(err);
+        await db.rollback();
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
@@ -1547,7 +1538,8 @@ const getOptionObjBySchema = async (schema, whereStr) => {
 }
 const getItems = async (req, res) => {
     try {
-        let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty, academy_category_pk, price_is_minus, start_date, end_date, type } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
+        const decode = checkLevel(req.cookies.token, 0);
+        let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty, academy_category_pk, price_is_minus, start_date, end_date, type, is_my } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
         let sql = `SELECT * FROM ${table}_table `;
         let pageSql = `SELECT COUNT(*) FROM ${table}_table `;
         let keyword_columns = getKewordListBySchema(table);
@@ -1599,7 +1591,7 @@ const getItems = async (req, res) => {
         sql = await sqlJoinFormat(table, sql, order, pageSql).sql;
         pageSql = await sqlJoinFormat(table, sql, order, pageSql).page_sql;
         order = await sqlJoinFormat(table, sql, order, pageSql).order;
-        whereStr = await sqlJoinFormat(table, sql, order, pageSql, whereStr).where_str;
+        whereStr = await sqlJoinFormat(table, sql, order, pageSql, whereStr, decode).where_str;
         pageSql = pageSql + whereStr;
 
         sql = sql + whereStr + ` ORDER BY ${order ? order : 'sort'} DESC `;

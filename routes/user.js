@@ -12,8 +12,10 @@ const when = require('when')
 let iconv = require('iconv-lite');
 const { checkLevel, getSQLnParams, getUserPKArrStrWithNewPK,
     isNotNullOrUndefined, namingImagesPath, nullResponse,
-    lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, categoryToNumber, sendAlarm, makeMaxPage, queryPromise, makeHash, commarNumber, getKewordListBySchema,
-    getEnLevelByNum, getKoLevelByNum
+    lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, 
+    categoryToNumber, sendAlarm, makeMaxPage, queryPromise, makeHash, commarNumber, getKewordListBySchema,
+    getEnLevelByNum, getKoLevelByNum,
+    getQuestions
 } = require('../util')
 const {
     getRowsNumWithKeyword, getRowsNum, getAllDatas,

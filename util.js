@@ -332,6 +332,13 @@ const returnMoment = (d) => {
     let moment = dateString + ' ' + timeString;
     return moment;
 }
+const getQuestions = (length) =>{
+    let result = [];
+    for(var i = 0;i<length;i++){
+        result.push('?');
+    }
+    return result;
+}
 const makeHash = (pw_) => {
 
     return new Promise(async (resolve, reject) => {
@@ -439,5 +446,5 @@ module.exports = {
     getUserPKArrStrWithNewPK, isNotNullOrUndefined,
     namingImagesPath, getSQLnParams,
     nullResponse, lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, categoryToNumber, sendAlarm, makeMaxPage, tooMuchRequest,
-    queryPromise, makeHash, commarNumber, getKewordListBySchema, getEnLevelByNum, getKoLevelByNum
+    queryPromise, makeHash, commarNumber, getKewordListBySchema, getEnLevelByNum, getKoLevelByNum, getQuestions
 }
