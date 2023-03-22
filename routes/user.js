@@ -12,10 +12,10 @@ const when = require('when')
 let iconv = require('iconv-lite');
 const { checkLevel, getSQLnParams, getUserPKArrStrWithNewPK,
     isNotNullOrUndefined, namingImagesPath, nullResponse,
-    lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, 
+    lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber,
     categoryToNumber, sendAlarm, makeMaxPage, queryPromise, makeHash, commarNumber, getKewordListBySchema,
     getEnLevelByNum, getKoLevelByNum,
-    getQuestions
+    getQuestions, getNumByEnLevel
 } = require('../util')
 const {
     getRowsNumWithKeyword, getRowsNum, getAllDatas,
@@ -48,9 +48,9 @@ const addContract = async (req, res) => {
         if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-        const { pay_type, deposit, monthly, document_src, address, address_detail, zip_code } = req.body;
-        let result = await insertQuery('INSERT INTO contract_table (pay_type, deposit, monthly, document_src, address, address_detail, zip_code, realtor_pk, step) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [pay_type, deposit, monthly, document_src, address, address_detail, zip_code, decode?.pk, 1]);
+        const { pay_type, deposit, monthly, document_src, address, address_detail, zip_code, start_date, pay_day } = req.body;
+        let result = await insertQuery('INSERT INTO contract_table (pay_type, deposit, monthly, document_src, address, address_detail, zip_code, start_date, pay_day, realtor_pk, step) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [pay_type, deposit, monthly, document_src, address, address_detail, zip_code, start_date, pay_day, decode?.pk, 1]);
         return response(req, res, 100, "success", {
             result_pk: result?.result?.insertId
         });
@@ -67,11 +67,11 @@ const updateContract = async (req, res) => {
         if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-        const { pay_type, deposit, monthly, address, address_detail, zip_code, pk, document_src } = req.body;
+        const { pay_type, deposit, monthly, address, address_detail, zip_code, start_date, pay_day, pk, document_src } = req.body;
         console.log(req.body)
 
-        let value_str = "pay_type=?, deposit=?, monthly=?, address=?, address_detail=?, zip_code=?";
-        let value_list = [pay_type, deposit, monthly, address, address_detail, zip_code];
+        let value_str = "pay_type=?, deposit=?, monthly=?, address=?, address_detail=?, zip_code=? , start_date=?, pay_day=? ";
+        let value_list = [pay_type, deposit, monthly, address, address_detail, zip_code, start_date, pay_day];
         if (document_src) {
             if (document_src == -1) {
                 value_list.push('')
@@ -167,7 +167,7 @@ const confirmContractAppr = async (req, res) => {
         }
         let contract = await dbQueryList(`SELECT * FROM contract_table WHERE pk=${contract_pk}`);
         contract = contract?.result[0];
-        if(contract[`${getEnLevelByNum(decode?.user_level)}_appr`]==1){
+        if (contract[`${getEnLevelByNum(decode?.user_level)}_appr`] == 1) {
             return response(req, res, -100, "이미 수락한 계약입니다.", []);
         }
         let result = await insertQuery(`UPDATE contract_table SET ${getEnLevelByNum(decode?.user_level)}_appr=1 WHERE pk=${contract_pk}`);
@@ -196,6 +196,53 @@ const onResetContractUser = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
+const onChangeCard = async (req, res) => {
+    try {
+        const decode = checkLevel(req.cookies.token, 0);
+        if (!decode) {
+            return response(req, res, -150, "권한이 없습니다.", []);
+        }
+        const { card_number, card_name, card_expire, card_cvc, card_password } = req.body;
+        let result = await insertQuery(`UPDATE user_table SET card_number=?, card_name=?, card_expire=?, card_cvc=?, card_password=? WHERE pk=?`, [card_number, card_name, card_expire, card_cvc, card_password, decode?.pk]);
+        return response(req, res, 100, "success", []);
+    } catch (err) {
+        console.log(err)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
+const getCustomInfo = async (req, res) => {
+    try {
+        const decode = checkLevel(req.cookies.token, 0);
+        if (!decode) {
+            return response(req, res, -150, "권한이 없습니다.", []);
+        }
+        const { level, page } = req.query;
+        let my_contracts = await dbQueryList(`SELECT * FROM contract_table WHERE ${getEnLevelByNum(decode?.user_level)}_pk=${decode?.pk} ORDER by pk DESC`);
+        my_contracts = my_contracts?.result;
+        let user_pk_list = my_contracts.map((item) => {
+            return item[`${getEnLevelByNum(level)}_pk`]
+        })
+        let user_count = 0;
+        if (user_pk_list.length > 0) {
+            user_count = await dbQueryList(`SELECT COUNT(*) FROM user_table WHERE pk IN (${user_pk_list.join()}) `);
+            user_count = user_count?.result[0];
+            user_count = user_count['COUNT(*)'];
+            user_count = makeMaxPage(user_count, 10);
+        }
+        let user_list = [];
+        if (user_pk_list.length > 0) {
+            user_list = await dbQueryList(`SELECT * FROM user_table WHERE pk IN (${user_pk_list.join()}) LIMIT ${(page - 1) * 10}, 10`);
+            user_list = user_list?.result;
+        }
+        return response(req, res, 100, "success", {
+            data: user_list,
+            maxPage: user_count
+        });
+    } catch (err) {
+        console.log(err)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
 module.exports = {
-    addContract, getHomeContent, updateContract, requestContractAppr, confirmContractAppr, onResetContractUser
+    addContract, getHomeContent, updateContract, requestContractAppr, confirmContractAppr, onResetContractUser, onChangeCard, getCustomInfo
 };

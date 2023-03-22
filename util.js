@@ -409,6 +409,18 @@ const getEnLevelByNum = (num) => {
     else if (num == 50)
         return 'developer';
 }
+const getNumByEnLevel = (str) => {
+    if (str == 'lessee')
+        return 0;
+    else if (str == 'landlord')
+        return 5;
+    else if (str == 'realtor')
+        return 10;
+    else if (str == 'manager')
+        return 40;
+    else if (str == 'developer')
+        return 50;
+}
 const getKoLevelByNum = (num) => {
     if (num == 0)
         return '임차인';
@@ -446,5 +458,5 @@ module.exports = {
     getUserPKArrStrWithNewPK, isNotNullOrUndefined,
     namingImagesPath, getSQLnParams,
     nullResponse, lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, categoryToNumber, sendAlarm, makeMaxPage, tooMuchRequest,
-    queryPromise, makeHash, commarNumber, getKewordListBySchema, getEnLevelByNum, getKoLevelByNum, getQuestions
+    queryPromise, makeHash, commarNumber, getKewordListBySchema, getEnLevelByNum, getKoLevelByNum, getQuestions, getNumByEnLevel
 }

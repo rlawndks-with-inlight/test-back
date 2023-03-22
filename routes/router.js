@@ -9,7 +9,7 @@ const {
     deleteItem, onResign, getMyItems, getMyItem, onSubscribe, updateSubscribe, getHeaderContent, onKeyrecieve, onNotiKiwoom
 } = require('./common');
 const {
-    addContract, getHomeContent, updateContract, requestContractAppr, confirmContractAppr, onResetContractUser
+    addContract, getHomeContent, updateContract, requestContractAppr, confirmContractAppr, onResetContractUser, onChangeCard, getCustomInfo
 } = require('./user');
 const image_list = [
     { name: 'master' },
@@ -64,6 +64,8 @@ router.get('/getuserstatistics', getUserStatistics);
 router.get('/gethomecontent', getHomeContent);
 router.get('/getheadercontent', getHeaderContent);
 router.get('/getmyinfo', getMyInfo);
+router.get('/customer-info', getCustomInfo);
+router.post('/change-card', onChangeCard);
 
 router.post('/keyrecieve/:pk/:device', onKeyrecieve);
 router.get('/keyrecieve/:pk/:device', onKeyrecieve);
