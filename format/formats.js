@@ -93,6 +93,13 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_, decode) => {
             where_str += ` AND ${getEnLevelByNum(decode?.user_level)}_pk=${decode?.pk} `
         }
         order = 'pk'
+    }else if(schema=='pay'){
+        sql = ` SELECT * FROM v_pay `;
+        page_sql = ` SELECT COUNT(*) FROM v_pay `
+        if(decode?.user_level==0 ||decode?.user_level==5 ||decode?.user_level==10 ){
+            where_str += ` AND ${getEnLevelByNum(decode?.user_level)}_pk=${decode?.pk} `
+        }
+        order = 'pk'
     }
     return {
         page_sql:page_sql,

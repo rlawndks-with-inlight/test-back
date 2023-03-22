@@ -100,6 +100,7 @@ const getHomeContent = async (req, res) => {
             { table: 'notice', sql: 'SELECT notice_table.*, user_table.nickname FROM notice_table LEFT JOIN user_table ON notice_table.user_pk=user_table.pk WHERE notice_table.status=1 ORDER BY notice_table.sort DESC LIMIT 2', type: 'list' },
             { table: 'setting', sql: 'SELECT * FROM setting_table', type: 'obj' },
             { table: 'contract', sql: `SELECT * FROM v_contract WHERE ${getEnLevelByNum(decode?.user_level)}_pk=${decode?.pk} ORDER BY pk DESC LIMIT 5`, type: 'list' },
+            { table: 'pay', sql: `SELECT * FROM v_pay WHERE ${getEnLevelByNum(decode?.user_level)}_pk=${decode?.pk} ORDER BY pk DESC LIMIT 5`, type: 'list' },
         ];
 
         for (var i = 0; i < sql_list.length; i++) {
@@ -170,10 +171,34 @@ const confirmContractAppr = async (req, res) => {
         if (contract[`${getEnLevelByNum(decode?.user_level)}_appr`] == 1) {
             return response(req, res, -100, "이미 수락한 계약입니다.", []);
         }
+        await db.beginTransaction();
         let result = await insertQuery(`UPDATE contract_table SET ${getEnLevelByNum(decode?.user_level)}_appr=1 WHERE pk=${contract_pk}`);
+
+        let now_contract = await dbQueryList(`SELECT * FROM contract_table WHERE pk=${contract_pk}`);
+        now_contract = now_contract?.result[0];
+        if (
+            now_contract[`${getEnLevelByNum(0)}_appr`] == 1 &&
+            now_contract[`${getEnLevelByNum(5)}_appr`] == 1 &&
+            now_contract[`deposit`] > 0 &&
+            now_contract[`monthly`] > 0
+        ) {
+            let result2 = await insertQuery(`INSERT pay_table (${getEnLevelByNum(0)}_pk, ${getEnLevelByNum(5)}_pk, ${getEnLevelByNum(10)}_pk, price, pay_category, status, contract_pk) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    now_contract[`${getEnLevelByNum(0)}_pk`],
+                    now_contract[`${getEnLevelByNum(5)}_pk`],
+                    now_contract[`${getEnLevelByNum(10)}_pk`],
+                    now_contract[`deposit`],
+                    1,
+                    0,
+                    now_contract[`pk`]
+                ])
+
+        }
+        await db.commit();
         return response(req, res, 100, "success", []);
     } catch (err) {
         console.log(err)
+        await db.rollback();
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
