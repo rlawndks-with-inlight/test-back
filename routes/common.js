@@ -427,19 +427,28 @@ const editMyInfo = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-const onResign = (req, res) => {
+const onResign = async (req, res) => {
     try {
-        let { id } = req.body;
-        db.query("DELETE FROM user_table WHERE id=?", [id], (err, result) => {
-            if (err) {
-                console.log(err)
-                return response(req, res, -100, "서버 에러 발생", []);
-            } else {
-                return response(req, res, 100, "success", []);
-            }
-        })
+        let { pw } = req.body;
+        const decode = checkLevel(req.cookies.token, 0)
+        if (!decode) {
+            return response(req, res, -150, "권한이 없습니다.", [])
+        }
+        pw = await makeHash(pw);
+        pw = pw?.data;
+        let user = await dbQueryList(`SELECT * FROM user_table WHERE pk=?`,[decode?.pk]);
+        user = user?.result[0];
+        if(user?.pw != pw){
+            return response(req, res, -100, "비밀번호가 일치하지 않습니다.", []);
+        }
+        await db.beginTransaction();
+        let result = await insertQuery("DELETE FROM user_table WHERE pk=?", [decode?.pk]);
+        await res.clearCookie('token');
+        return response(req, res, 100, "success", []);
+
     } catch (e) {
         console.log(e)
+        await db.rollback();
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
