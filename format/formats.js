@@ -58,7 +58,7 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_, decode) => {
         sql += ` LEFT JOIN user_table ON notice_table.user_pk=user_table.pk `;
         order = 'notice_table.sort'
     }else if(schema=='request'){
-        sql = ` SELECT request_table.*, user_table.nickname AS nickname, user_table.id_number AS id_number, user_table.id AS id FROM request_table`;
+        sql = ` SELECT request_table.*, user_table.nickname AS nickname, user_table.name AS name, user_table.id_number AS id_number, user_table.id AS id FROM request_table`;
         page_sql += ` LEFT JOIN user_table ON request_table.user_pk=user_table.pk `;
         sql += ` LEFT JOIN user_table ON request_table.user_pk=user_table.pk `;
         order = 'pk'
