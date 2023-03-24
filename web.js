@@ -15,7 +15,10 @@ const im = require('imagemagick');
 const sharp = require('sharp')
 //passport, jwt
 const jwt = require('jsonwebtoken')
-const { checkLevel, logRequestResponse, isNotNullOrUndefined, namingImagesPath, nullResponse, lowLevelResponse, response, returnMoment, sendAlarm, categoryToNumber, tooMuchRequest } = require('./util')
+const { checkLevel, logRequestResponse, isNotNullOrUndefined,
+        namingImagesPath, nullResponse, lowLevelResponse, response,
+        returnMoment, sendAlarm, categoryToNumber, tooMuchRequest,
+        getEnLevelByNum } = require('./util')
 app.use(bodyParser.json({ limit: '100mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '100mb' }));
 //multer
@@ -74,35 +77,79 @@ let overFiveTime = new Date(returnMoment());
 overFiveTime.setMinutes(overFiveTime.getMinutes() + 5)
 overFiveTime = overFiveTime.getTime();
 
-const scheduleAlarm = () => {
+const scheduleSystem = () => {
+        let use_alarm = false;
+        let use_create_pay = true;
         schedule.scheduleJob('0 0/1 * * * *', async function () {
-                console.log(returnMoment());
-                let date = returnMoment().substring(0, 10);
-                let dayOfWeek = new Date(date).getDay()
-                let result = await dbQueryList(`SELECT * FROM alarm_table WHERE ((DATEDIFF(?, start_date) >= 0 AND days LIKE '%${dayOfWeek}%' AND type=1) OR ( start_date=? AND type=2 )) AND STATUS=1`, [date, date]);
-                if (result.code > 0) {
-                        let list = [...result.result];
-                        for (var i = 0; i < list.length; i++) {
-                                let time = new Date(returnMoment()).getTime();
-                                let overFiveTime = new Date(returnMoment());
-                                overFiveTime.setMinutes(overFiveTime.getMinutes() + 1)
-                                overFiveTime = overFiveTime.getTime();
+                let return_moment = returnMoment()
+                console.log(return_moment)
+                if (use_alarm) {
+                        let date = return_moment.substring(0, 10);
+                        let dayOfWeek = new Date(date).getDay()
+                        let result = await dbQueryList(`SELECT * FROM alarm_table WHERE ((DATEDIFF(?, start_date) >= 0 AND days LIKE '%${dayOfWeek}%' AND type=1) OR ( start_date=? AND type=2 )) AND STATUS=1`, [date, date]);
+                        if (result.code > 0) {
+                                let list = [...result.result];
+                                for (var i = 0; i < list.length; i++) {
+                                        let time = new Date(return_moment).getTime();
+                                        let overFiveTime = new Date(return_moment);
+                                        overFiveTime.setMinutes(overFiveTime.getMinutes() + 1)
+                                        overFiveTime = overFiveTime.getTime();
 
-                                let item_time = new Date(returnMoment().substring(0, 11) + list[i].time).getTime();
+                                        let item_time = new Date(return_moment.substring(0, 11) + list[i].time).getTime();
 
-                                if (item_time >= time && item_time < overFiveTime) {
-                                        sendAlarm(list[i].title, list[i].note, "alarm", list[i].pk, list[i].url);
-                                        insertQuery("INSERT INTO alarm_log_table (title, note, item_table, item_pk, url) VALUES (?, ?, ?, ?, ?)", [list[i].title, list[i].note, "alarm", list[i].pk, list[i].url])
+                                        if (item_time >= time && item_time < overFiveTime) {
+                                                sendAlarm(list[i].title, list[i].note, "alarm", list[i].pk, list[i].url);
+                                                insertQuery("INSERT INTO alarm_log_table (title, note, item_table, item_pk, url) VALUES (?, ?, ?, ?, ?)", [list[i].title, list[i].note, "alarm", list[i].pk, list[i].url])
+                                        }
                                 }
                         }
                 }
+                if (use_create_pay) {
+                        if (return_moment.includes('00:00:00')) {//매일 00시
+                                let return_moment_list = return_moment.substring(0, 10).split('-');
+                                let pay_day = parseInt(return_moment_list[2]);
+
+                                let contracts = await dbQueryList(`SELECT * FROM v_contract`);
+                                contracts = contracts?.result;
+
+                                let pays = await dbQueryList(`SELECT contract_pk, MAX(day) as max_day FROM v_pay WHERE pay_category=0 group by contract_pk`);
+                                pays = pays?.result;
+                                let pay_obj = {};
+                                for (var i = 0; i < pays.length; i++) {
+                                        pay_obj[`${pays[i]?.contract_pk}-${pays[i]?.max_day}`] = true;
+                                }
+                                let pay_list = [];
+                                for (var i = 0; i < contracts.length; i++) {
+                                        if (contracts[i]?.pay_day == pay_day && !pay_obj[`${contracts[i]?.pk}-${return_moment.substring(0, 10)}`]) {
+                                                pay_list.push(
+                                                        [
+                                                                contracts[i][`${getEnLevelByNum(0)}_pk`],
+                                                                contracts[i][`${getEnLevelByNum(5)}_pk`],
+                                                                contracts[i][`${getEnLevelByNum(10)}_pk`],
+                                                                contracts[i][`monthly`],
+                                                                0,
+                                                                0,
+                                                                contracts[i][`pk`],
+                                                                return_moment.substring(0, 10)
+                                                        ]
+                                                )
+                                        }
+                                }
+                                if (pay_list.length > 0) {
+                                        let result = await insertQuery(`INSERT pay_table (${getEnLevelByNum(0)}_pk, ${getEnLevelByNum(5)}_pk, ${getEnLevelByNum(10)}_pk, price, pay_category, status, contract_pk, day) VALUES ?`, [pay_list]);
+                                }
+
+                        }
+                }
         })
+
 }
 
 let server = undefined
 if (is_test) {
         server = http.createServer(app).listen(HTTP_PORT, function () {
                 console.log("Server on " + HTTP_PORT)
+                scheduleSystem();
         });
 
 } else {
@@ -113,7 +160,7 @@ if (is_test) {
         };
         server = https.createServer(options, app).listen(HTTPS_PORT, function () {
                 console.log("Server on " + HTTPS_PORT);
-                scheduleAlarm();
+                scheduleSystem();
         });
 
 }

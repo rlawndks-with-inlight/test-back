@@ -319,7 +319,7 @@ function lowLevelResponse(req, res) {
 const returnMoment = (d) => {
     var today = new Date();
     if (d) {
-        today = d;
+        today = new Date(d);
     }
     var year = today.getFullYear();
     var month = ('0' + (today.getMonth() + 1)).slice(-2);
