@@ -444,6 +444,8 @@ const onResign = async (req, res) => {
         await db.beginTransaction();
         let result = await insertQuery("DELETE FROM user_table WHERE pk=?", [decode?.pk]);
         await res.clearCookie('token');
+
+        await db.commit();
         return response(req, res, 100, "success", []);
 
     } catch (e) {
@@ -1604,6 +1606,8 @@ const getItems = async (req, res) => {
         pageSql = pageSql + whereStr;
 
         sql = sql + whereStr + ` ORDER BY ${order ? order : 'sort'} DESC `;
+
+        console.log(sql)
         if (limit && !page) {
             sql += ` LIMIT ${limit} `;
         }
