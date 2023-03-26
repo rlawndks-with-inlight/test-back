@@ -228,7 +228,7 @@ const confirmContractAppr = async (req, res) => {
                         }
                     }
                 }
-                if(pay_list.length>0){
+                if (pay_list.length > 0) {
                     let result = await insertQuery(`INSERT pay_table (${getEnLevelByNum(0)}_pk, ${getEnLevelByNum(5)}_pk, ${getEnLevelByNum(10)}_pk, price, pay_category, status, contract_pk, day) VALUES ?`, [pay_list]);
                 }
             }
@@ -307,6 +307,38 @@ const getCustomInfo = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
+const getMyPays = async (req, res) => {
+    try {
+        const decode = checkLevel(req.cookies.token, 0);
+        if (!decode) {
+            return response(req, res, -150, "권한이 없습니다.", []);
+        }
+        const { page, status, page_cut } = req.query;
+        let pay_sql = `SELECT * FROM v_pay `;
+        let page_sql = ` SELECT COUNT(*) FROM v_pay `
+        let result_obj = {};
+        if (status) {
+            pay_sql += ` WHERE status=${status} `;
+            page_sql += ` WHERE status=${status} `;
+        }
+        pay_sql += ` ORDER BY pk DESC `
+        if (page) {
+            pay_sql += ` LIMIT ${(page - 1) * page_cut}, ${page_cut} `;
+        }
+        let page_result = await dbQueryList(page_sql);
+        page_result = page_result?.result[0]['COUNT(*)'];
+        page_result = makeMaxPage(page_result, page_cut ?? 10);
+        let data_result = await dbQueryList(pay_sql);
+        data_result = data_result?.result;
+        return response(req, res, 100, "success", {
+            data: data_result,
+            maxPage: page_result
+        });
+    } catch (err) {
+        console.log(err)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
 module.exports = {
-    addContract, getHomeContent, updateContract, requestContractAppr, confirmContractAppr, onResetContractUser, onChangeCard, getCustomInfo
+    addContract, getHomeContent, updateContract, requestContractAppr, confirmContractAppr, onResetContractUser, onChangeCard, getCustomInfo, getMyPays
 };

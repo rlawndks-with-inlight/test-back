@@ -214,124 +214,36 @@ app.get('/api/item', async (req, res) => {
                 let table = req.query.table ?? "user";
                 //console.log(table)
                 const pk = req.query.pk ?? 0;
-                const permission_list = ['setting', 'notice', 'master', 'academy_category', 'review'];
-                let whereStr = " WHERE pk=? ";
+                const community_list = ['faq', 'notice'];
+                const only_my_item = ['pay', 'contract'];
                 const decode = checkLevel(req.cookies.token, 0)
-                if ((!decode || decode?.user_level == -10) && !permission_list.includes(table)) {
+                if (!decode) {
                         return response(req, res, -150, "권한이 없습니다.", []);
                 }
-                if (table == 'master') {
-                        table = 'user';
-                }
-                if (table == "setting") {
-                        whereStr = "";
-                }
 
-                let sql = `SELECT * FROM ${table}_table ` + whereStr;
+                await db.beginTransaction();
+                if (community_list.includes(table)) {
+                        let community_add_view = await insertQuery(`UPDATE ${table}_table SET views=views+1 WHERE pk=?`, [pk]);
+                }
+                let item = await dbQueryList(`SELECT * FROM ${table}_table WHERE pk=${pk}`);
+                item = item?.result[0];
 
-                if (req.query.views) {
-                        db.query(`UPDATE ${table}_table SET views=views+1 WHERE pk=?`, [pk], (err, result_view) => {
-                                if (err) {
-                                        console.log(err)
-                                        return response(req, res, -200, "서버 에러 발생", []);
+                if (only_my_item.includes(table)) {
+                        if (decode?.user_level < 40) {
+                                if(item[`${getEnLevelByNum(decode?.user_level)}_pk`] != decode?.pk){
+                                        await db.rollback();
+                                        return response(req, res, -150, "권한이 없습니다.", []);
                                 }
-                        })
-                }
-                db.query(sql, [pk], async (err, result) => {
-                        if (err) {
-                                console.log(err)
-                                return response(req, res, -200, "서버 에러 발생s", []);
-                        } else {
-                                console.log(req.body)
-
-                                if (table == 'academy' && decode?.user_level <= 0 && req.query.views) {
-                                        let is_exist = await dbQueryList(`SELECT * FROM subscribe_table WHERE user_pk=${decode?.pk} AND use_status=1 AND transaction_status >= 0 AND academy_category_pk=${result[0]?.category_pk} AND end_date>=? ORDER BY pk DESC`, [returnMoment().substring(0, 10)]);
-                                        console.log(is_exist)
-                                        is_exist = is_exist?.result;
-                                        if (is_exist.length > 0) {
-                                        } else {
-                                                if (decode?.user_level < 40) {
-                                                        return response(req, res, -150, "권한이 없습니다.", [])
-                                                }
-                                        }
-                                        let is_period = await dbQueryList(`SELECT * FROM academy_category_table WHERE pk=? AND (start_date <='${returnMoment().substring(0, 10)}' AND end_date>='${returnMoment().substring(0, 10)}') `, [result[0]?.category_pk])
-                                        is_period = is_period?.result;
-                                        if (is_period.length > 0) {
-                                        } else {
-                                                if (decode?.user_level < 40) {
-                                                        return response(req, res, -150, "수강 기간이 아닙니다.", [])
-                                                }
-                                        }
-                                }
-                                return response(req, res, 100, "success", result[0]);
                         }
-                })
-
+                }
+                return response(req, res, 100, "success", item);
         }
         catch (err) {
+                await db.rollback();
                 console.log(err)
                 return response(req, res, -200, "서버 에러 발생", []);
         }
 });
-const checkItemBySchema = (schema) => {
-
-}
-app.get('/api/getvideocontent', (req, res) => {
-        try {
-                console.log(app.connectionsN)
-                //  if (tooMuchRequest(app.connectionsN)) {
-                //          return response(req, res, -120, "접속자 수가 너무많아 지연되고있습니다.(잠시후 다시 시도 부탁드립니다.)", [])
-                //  }
-                const decode = checkLevel(req.cookies.token, 0)
-                if (!decode) {
-                        return response(req, res, -150, "권한이 없습니다.", [])
-                }
-
-                const pk = req.query.pk;
-                let sql1 = `SELECT video_table.* , user_table.nickname, user_table.name FROM video_table LEFT JOIN user_table ON video_table.user_pk = user_table.pk WHERE video_table.pk=? LIMIT 1`;//비디오 정보
-                let sql2 = `SELECT video_relate_table.*, video_table.* FROM video_relate_table LEFT JOIN video_table ON video_relate_table.relate_video_pk = video_table.pk WHERE video_relate_table.video_pk=? `//관련영상
-                let sql3 = `SELECT video_table.pk, video_table.link, video_table.title, user_table.name, user_table.nickname FROM video_table LEFT JOIN user_table ON video_table.user_pk = user_table.pk ORDER BY pk DESC LIMIT 5`;//최신영상
-                if (req.query.views) {
-                        db.query("UPDATE video_table SET views=views+1 WHERE pk=?", [pk], (err, result_view) => {
-                                if (err) {
-                                        console.log(err)
-                                        return response(req, res, -200, "서버 에러 발생", [])
-                                } else {
-                                }
-                        })
-                }
-                db.query(sql1, [pk], async (err, result1) => {
-                        if (err) {
-                                console.log(err)
-                                return response(req, res, -200, "서버 에러 발생", []);
-                        } else {
-                                await db.query(sql2, [pk], async (err, result2) => {
-                                        if (err) {
-                                                console.log(err)
-                                                return response(req, res, -200, "서버 에러 발생", [])
-                                        } else {
-                                                await db.query(sql3, async (err, result3) => {
-                                                        if (err) {
-                                                                console.log(err)
-                                                                return response(req, res, -200, "서버 에러 발생", [])
-                                                        } else {
-                                                                return response(req, res, 100, "success", {
-                                                                        video: result1[0],
-                                                                        relates: result2,
-                                                                        latests: result3
-                                                                })
-                                                        }
-                                                })
-                                        }
-                                })
-                        }
-                })
-        } catch (err) {
-                console.log(err)
-                return response(req, res, -200, "서버 에러 발생", [])
-        }
-});
-
 app.get('/', (req, res) => {
         res.json({ message: `Server is running on port ${req.secure ? HTTPS_PORT : HTTP_PORT}` });
 });
