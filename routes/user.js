@@ -15,7 +15,7 @@ const { checkLevel, getSQLnParams, getUserPKArrStrWithNewPK,
     lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber,
     categoryToNumber, sendAlarm, makeMaxPage, queryPromise, makeHash, commarNumber, getKewordListBySchema,
     getEnLevelByNum, getKoLevelByNum,
-    getQuestions, getNumByEnLevel
+    getQuestions, getNumByEnLevel, initialPay
 } = require('../util')
 const {
     getRowsNumWithKeyword, getRowsNum, getAllDatas,
@@ -96,11 +96,16 @@ const getHomeContent = async (req, res) => {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
         let result_list = [];
+        let user_level_list = [0,5,10];
+        let user_where_sql = "";
+        if(user_level_list.includes(decode?.user_level)){
+            user_where_sql = `WHERE ${getEnLevelByNum(decode?.user_level)}_pk=${decode?.pk}`;
+        }
         let sql_list = [
             { table: 'notice', sql: 'SELECT notice_table.*, user_table.nickname FROM notice_table LEFT JOIN user_table ON notice_table.user_pk=user_table.pk WHERE notice_table.status=1 ORDER BY notice_table.sort DESC LIMIT 2', type: 'list' },
             { table: 'setting', sql: 'SELECT * FROM setting_table', type: 'obj' },
-            { table: 'contract', sql: `SELECT * FROM v_contract WHERE ${getEnLevelByNum(decode?.user_level)}_pk=${decode?.pk} ORDER BY pk DESC LIMIT 5`, type: 'list' },
-            { table: 'pay', sql: `SELECT * FROM v_pay WHERE ${getEnLevelByNum(decode?.user_level)}_pk=${decode?.pk} ORDER BY pk DESC LIMIT 5`, type: 'list' },
+            { table: 'contract', sql: `SELECT * FROM v_contract ${user_where_sql} ORDER BY pk DESC LIMIT 5`, type: 'list' },
+            { table: 'pay', sql: `SELECT * FROM v_pay ${user_where_sql} ORDER BY pk DESC LIMIT 5`, type: 'list' },
         ];
 
         for (var i = 0; i < sql_list.length; i++) {
@@ -176,63 +181,7 @@ const confirmContractAppr = async (req, res) => {
 
         let now_contract = await dbQueryList(`SELECT * FROM contract_table WHERE pk=${contract_pk}`);
         now_contract = now_contract?.result[0];
-        if (
-            now_contract[`${getEnLevelByNum(0)}_appr`] == 1 &&
-            now_contract[`${getEnLevelByNum(5)}_appr`] == 1 &&
-            now_contract[`deposit`] > 0 &&
-            now_contract[`monthly`] > 0
-        ) {
-            let result2 = await insertQuery(`INSERT pay_table (${getEnLevelByNum(0)}_pk, ${getEnLevelByNum(5)}_pk, ${getEnLevelByNum(10)}_pk, price, pay_category, status, contract_pk, day) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                [
-                    now_contract[`${getEnLevelByNum(0)}_pk`],
-                    now_contract[`${getEnLevelByNum(5)}_pk`],
-                    now_contract[`${getEnLevelByNum(10)}_pk`],
-                    now_contract[`deposit`],
-                    1,
-                    0,
-                    now_contract[`pk`],
-                    returnMoment().substring(0, 10)
-                ])
-            let now = returnMoment().substring(0, 10);
-            if (now >= `${now_contract.start_date}`) {//월세 관련
-                let pay_list = [];
-                let contract_day = `${now_contract['pay_day'] >= 10 ? `${now_contract['pay_day']}` : `0${now_contract['pay_day']}`}`
-                let pay_date = now_contract.start_date.substring(0, 7) + `-${contract_day}`;
-                for (var i = 0; i < 100000; i++) {
-                    //console.log(date_format)'
-                    if (pay_date.includes('-12-')) {
-                        pay_date = pay_date.split('-');
-                        pay_date = `${(parseInt(pay_date[0]) + 1)}-01-${contract_day}`
-                    } else {
-                        pay_date = pay_date.split('-');
-                        pay_date[1] = parseInt(pay_date[1]) + 1;
-                        pay_date[1] = `${pay_date[1] >= 10 ? pay_date[1] : `0${pay_date[1]}`}`
-                        pay_date = `${pay_date[0]}-${(pay_date[1])}-${contract_day}`
-                    }
-                    if (pay_date <= now && pay_date >= now_contract.start_date) {
-                        pay_list.push(
-                            [
-                                now_contract[`${getEnLevelByNum(0)}_pk`],
-                                now_contract[`${getEnLevelByNum(5)}_pk`],
-                                now_contract[`${getEnLevelByNum(10)}_pk`],
-                                now_contract[`monthly`],
-                                0,
-                                0,
-                                now_contract[`pk`],
-                                pay_date
-                            ]
-                        )
-                    } else {
-                        if (pay_date > now) {
-                            break;
-                        }
-                    }
-                }
-                if (pay_list.length > 0) {
-                    let result = await insertQuery(`INSERT pay_table (${getEnLevelByNum(0)}_pk, ${getEnLevelByNum(5)}_pk, ${getEnLevelByNum(10)}_pk, price, pay_category, status, contract_pk, day) VALUES ?`, [pay_list]);
-                }
-            }
-        }
+        await initialPay(now_contract);
         await db.commit();
         return response(req, res, 100, "success", []);
     } catch (err) {

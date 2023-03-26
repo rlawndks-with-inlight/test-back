@@ -225,7 +225,12 @@ app.get('/api/item', async (req, res) => {
                 if (community_list.includes(table)) {
                         let community_add_view = await insertQuery(`UPDATE ${table}_table SET views=views+1 WHERE pk=?`, [pk]);
                 }
-                let item = await dbQueryList(`SELECT * FROM ${table}_table WHERE pk=${pk}`);
+                if(only_my_item.includes(table)){
+                        table = `v_${table}`;
+                }else{
+                        table = `${table}_table`;
+                }
+                let item = await dbQueryList(`SELECT * FROM ${table} WHERE pk=${pk}`);
                 item = item?.result[0];
 
                 if (only_my_item.includes(table)) {

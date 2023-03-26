@@ -12,9 +12,9 @@ const when = require('when')
 let iconv = require('iconv-lite');
 const { checkLevel, getSQLnParams, getUserPKArrStrWithNewPK,
     isNotNullOrUndefined, namingImagesPath, nullResponse,
-    lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, 
+    lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber,
     categoryToNumber, sendAlarm, makeMaxPage, queryPromise, makeHash, commarNumber, getKewordListBySchema,
-    getQuestions
+    getQuestions, initialPay
 } = require('../util')
 const {
     getRowsNumWithKeyword, getRowsNum, getAllDatas,
@@ -144,17 +144,17 @@ const onSignUp = async (req, res) => {
             status_classification,
         } = req.body;
         let pw = req.body.pw ?? "";
-        
+
         let sql = "SELECT * FROM user_table WHERE id=? ";
 
-        let find_user = await dbQueryList(`SELECT * FROM user_table WHERE id=?`,[id]);
+        let find_user = await dbQueryList(`SELECT * FROM user_table WHERE id=?`, [id]);
         find_user = find_user?.result;
-        if(find_user.length>0){
+        if (find_user.length > 0) {
             return response(req, res, -100, "아이디가 중복됩니다.", []);
         }
-        let find_phone = await dbQueryList(`SELECT * FROM user_table WHERE phone=?`,[phone]);
+        let find_phone = await dbQueryList(`SELECT * FROM user_table WHERE phone=?`, [phone]);
         find_phone = find_phone?.result;
-        if(find_phone.length>0){
+        if (find_phone.length > 0) {
             return response(req, res, -100, "휴대폰번호가 중복됩니다.", []);
         }
         pw = await makeHash(pw);
@@ -179,18 +179,18 @@ const onSignUp = async (req, res) => {
             broker_classification,
             status_classification,
         }
-        let type_number = ['user_level','type']
+        let type_number = ['user_level', 'type']
         let insertKeys = Object.keys(insert_obj);
         let insertValues = [];
-        for(var i = 0;i<insertKeys.length;i++){
-            if(type_number.includes(insertKeys[i])){
-                insertValues.push(insert_obj[insertKeys[i]]??0);
-            }else{
-                insertValues.push(insert_obj[insertKeys[i]]??"");
+        for (var i = 0; i < insertKeys.length; i++) {
+            if (type_number.includes(insertKeys[i])) {
+                insertValues.push(insert_obj[insertKeys[i]] ?? 0);
+            } else {
+                insertValues.push(insert_obj[insertKeys[i]] ?? "");
             }
         }
         await db.beginTransaction();
-        let result = await insertQuery(`INSERT INTO user_table (${insertKeys.join()}) VALUES (${getQuestions(insertKeys.length).join()})`,insertValues);
+        let result = await insertQuery(`INSERT INTO user_table (${insertKeys.join()}) VALUES (${getQuestions(insertKeys.length).join()})`, insertValues);
         let result2 = await insertQuery("UPDATE user_table SET sort=? WHERE pk=?", [result?.result?.insertId, result?.result?.insertId]);
         await db.commit();
         return response(req, res, 200, "success", []);
@@ -436,9 +436,9 @@ const onResign = async (req, res) => {
         }
         pw = await makeHash(pw);
         pw = pw?.data;
-        let user = await dbQueryList(`SELECT * FROM user_table WHERE pk=?`,[decode?.pk]);
+        let user = await dbQueryList(`SELECT * FROM user_table WHERE pk=?`, [decode?.pk]);
         user = user?.result[0];
-        if(user?.pw != pw){
+        if (user?.pw != pw) {
             return response(req, res, -100, "비밀번호가 일치하지 않습니다.", []);
         }
         await db.beginTransaction();
@@ -1547,46 +1547,65 @@ const getOptionObjBySchema = async (schema, whereStr) => {
     }
     return obj;
 }
+const getTableName = (table) => {
+    if (table == 'pay')
+        return 'v_pay'
+    else if (table == 'contract')
+        return 'v_contract'
+    else
+        return `${table}_table`;
+}
 const getItems = async (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 0);
-        let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty, academy_category_pk, price_is_minus, start_date, end_date, type, is_my, contract_pk } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);;
-        let sql = `SELECT * FROM ${table}_table `;
-        let pageSql = `SELECT COUNT(*) FROM ${table}_table `;
+        let { level, category_pk, status, user_pk, keyword, limit, page, page_cut, order, table, master_pk, difficulty, academy_category_pk, price_is_minus, start_date, end_date, type, is_my, contract_pk, is_contract, pay_category } = (req.query.table ? { ...req.query } : undefined) || (req.body.table ? { ...req.body } : undefined);
+        let table_name = getTableName(table);
+        let sql = `SELECT * FROM ${table_name} `;
+        let pageSql = `SELECT COUNT(*) FROM ${table_name} `;
         let keyword_columns = getKewordListBySchema(table);
         let whereStr = " WHERE 1=1 ";
         if (level) {
-            whereStr += ` AND ${table}_table.user_level=${level} `;
+            whereStr += ` AND ${table_name}.user_level=${level} `;
         }
         if (category_pk) {
-            whereStr += ` AND ${table}_table.category_pk=${category_pk} `;
+            whereStr += ` AND ${table_name}.category_pk=${category_pk} `;
         }
         if (status) {
-            whereStr += ` AND ${table}_table.status=${status} `;
+            whereStr += ` AND ${table_name}.status=${status} `;
         }
         if (contract_pk) {
             whereStr += ` AND contract_pk=${contract_pk} `;
         }
         if (type) {
-            whereStr += ` AND ${table}_table.type=${type} `;
+            whereStr += ` AND ${table_name}.type=${type} `;
         }
         if (user_pk) {
-            whereStr += ` AND ${table}_table.user_pk=${user_pk} `;
+            whereStr += ` AND ${table_name}.user_pk=${user_pk} `;
         }
         if (master_pk) {
-            whereStr += ` AND ${table}_table.master_pk=${master_pk} `;
+            whereStr += ` AND ${table_name}.master_pk=${master_pk} `;
         }
         if (academy_category_pk) {
-            whereStr += ` AND ${table}_table.academy_category_pk=${academy_category_pk} `;
+            whereStr += ` AND ${table_name}.academy_category_pk=${academy_category_pk} `;
         }
         if (difficulty) {
-            whereStr += ` AND ${table}_table.difficulty=${difficulty} `;
+            whereStr += ` AND ${table_name}.difficulty=${difficulty} `;
+        }
+        if (pay_category) {
+            whereStr += ` AND ${table_name}.pay_category=${pay_category} `;
         }
         if (price_is_minus) {
-            whereStr += ` AND ${table}_table.transaction_status ${price_is_minus == 1 ? ' = -1 ' : ' = 0 '} `;
+            whereStr += ` AND ${table_name}.transaction_status ${price_is_minus == 1 ? ' = -1 ' : ' = 0 '} `;
+        }
+        if (is_contract) {
+            if (is_contract == 1) {
+                whereStr += ` AND ${table_name}.landlord_appr=1 AND ${table_name}.lessee_appr=1  `;
+            } else {
+                whereStr += ` AND ( ${table_name}.landlord_appr!=1 OR ${table_name}.lessee_appr!=1 )  `;
+            }
         }
         if (start_date && end_date) {
-            whereStr += ` AND (${table}_table.trade_date BETWEEN '${start_date} 00:00:00' AND '${end_date} 23:59:59' )`;
+            whereStr += ` AND (${table_name}.date BETWEEN '${start_date} 00:00:00' AND '${end_date} 23:59:59' )`;
         }
 
         if (keyword) {
@@ -1607,10 +1626,8 @@ const getItems = async (req, res) => {
         order = await sqlJoinFormat(table, sql, order, pageSql).order;
         whereStr = await sqlJoinFormat(table, sql, order, pageSql, whereStr, decode).where_str;
         pageSql = pageSql + whereStr;
-
         sql = sql + whereStr + ` ORDER BY ${order ? order : 'sort'} DESC `;
 
-        console.log(sql)
         if (limit && !page) {
             sql += ` LIMIT ${limit} `;
         }
@@ -1638,6 +1655,165 @@ const getItems = async (req, res) => {
             result = await listFormatBySchema(table, result);
             return response(req, res, 100, "success", result);
         }
+    } catch (err) {
+        console.log(err)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
+const editContract = async (req, res) => {
+    try {
+        const decode = checkLevel(req.cookies.token, 40)
+        if (!decode) {
+            return response(req, res, -150, "권한이 없습니다.", [])
+        }
+        let {
+            realtor_id,
+            landlord_id,
+            lessee_id,
+            landlord_appr,
+            lessee_appr,
+            zip_code,
+            address,
+            address_detail,
+            pay_type,
+            deposit,
+            monthly,
+            start_date,
+            end_date,
+            pay_day,
+            pk
+        } = req.body;
+        let body = {
+            realtor_id,
+            landlord_id,
+            lessee_id,
+            landlord_appr,
+            lessee_appr,
+            zip_code,
+            address,
+            address_detail,
+            pay_type,
+            deposit,
+            monthly,
+            start_date,
+            end_date,
+            pay_day,
+            pk
+        };
+        let { edit_category } = req.params;
+        let users = await dbQueryList(`SELECT pk, id, user_level FROM user_table`);
+        users = users?.result;
+        let user_obj = {};
+        for(var i = 0;i<users.length;i++){
+            user_obj[users[i]?.id] = users[i];
+        }
+        if(!user_obj[realtor_id] || user_obj[realtor_id]?.user_level != 10){
+            return response(req, res, -100, "공인중개사 아이디를 찾을 수 없습니다.", [])
+        }else{
+            delete body['realtor_id'];
+            body['realtor_pk'] = user_obj[realtor_id]?.pk;
+        }
+        if(!user_obj[landlord_id] || user_obj[landlord_id]?.user_level != 5){
+            return response(req, res, -100, "임대인 아이디를 찾을 수 없습니다.", [])
+        }else{
+            delete body['landlord_id'];
+            body['landlord_pk'] = user_obj[landlord_id]?.pk;
+        }
+        if(!user_obj[lessee_id] || user_obj[lessee_id]?.user_level != 0){
+            return response(req, res, -100, "임차인 아이디를 찾을 수 없습니다.", [])
+        }else{
+            delete body['lessee_id'];
+            body['lessee_pk'] = user_obj[lessee_id]?.pk;
+        }
+        delete body['pk'];
+        let sql = "";
+        let keys = Object.keys(body);
+        let values = [];
+        for(var i = 0;i<keys.length;i++){
+            values.push(body[keys[i]]);
+        }
+        if(edit_category=='add'){
+            let questions = [];
+            for(var i = 0;i<keys.length;i++){
+                questions.push('?');
+            }
+            sql = ` INSERT INTO contract_table (${keys.join()}) VALUES (${questions.join()}) `;
+        }else{
+            values.push(req.body.pk);
+            sql = ` UPDATE contract_table SET ${keys.join('=?, ')}=? WHERE pk=?`;
+        }
+        await db.beginTransaction();
+        let result = await insertQuery(sql,values);
+        
+        if(body['landlord_appr']==1 && body['lessee_appr']==1){
+            if(req.body.pk){
+                body['pk'] = req.body.pk;
+            }else{
+                body['pk'] = result?.result?.insertId;
+            }
+            let contract = await dbQueryList(`SELECT * FROM contract_table WHERE pk=${body['pk']}`);
+            contract = contract?.result[0];
+            await initialPay(contract);
+        }
+        await db.commit();
+        return response(req, res, 100, "success", []);
+    } catch (err) {
+        await db.rollback();
+        console.log(err)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
+
+const editPay = async (req, res) => {
+    try {
+        const decode = checkLevel(req.cookies.token, 40)
+        if (!decode) {
+            return response(req, res, -150, "권한이 없습니다.", [])
+        }
+        let {
+            contract_pk,
+            pay_category,
+            price,
+            day,
+            status,
+            pk,
+        } = req.body;
+        let body = {
+            contract_pk,
+            pay_category,
+            price,
+            day,
+            status,
+            pk,
+        };
+        let { edit_category } = req.params;
+        let contract = await dbQueryList(`SELECT * FROM contract_table WHERE pk=${contract_pk}`);
+        if(contract?.result.length == 0){
+            return response(req, res, -100, "존재하지 않는 계약고유번호 입니다.", [])
+        }
+        contract = contract?.result[0];
+        delete body['pk'];
+        body['realtor_pk'] = contract['realtor_pk'];
+        body['landlord_pk'] = contract['landlord_pk'];
+        body['lessee_pk'] = contract['lessee_pk'];
+        let sql = "";
+        let keys = Object.keys(body);
+        let values = [];
+        for(var i = 0;i<keys.length;i++){
+            values.push(body[keys[i]]);
+        }
+        if(edit_category=='add'){
+            let questions = [];
+            for(var i = 0;i<keys.length;i++){
+                questions.push('?');
+            }
+            sql = ` INSERT INTO pay_table (${keys.join()}) VALUES (${questions.join()}) `;
+        }else{
+            values.push(req.body.pk);
+            sql = ` UPDATE pay_table SET ${keys.join('=?, ')}=? WHERE pk=?`;
+        }
+        let result = await insertQuery(sql,values);
+        return response(req, res, 100, "success", []);
     } catch (err) {
         console.log(err)
         return response(req, res, -200, "서버 에러 발생", [])
@@ -2394,5 +2570,5 @@ module.exports = {
     getUsers, getItems, getSetting, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, addImageItems,//select
     onSignUp, addItem, addItemByUser, addNoteImage, addSetting, addComment, addAlarm, addPopup, insertUserMoneyByExcel,//insert 
     updateUser, updateItem, updateSetting, updateStatus, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
-    deleteItem, onResign, getMyItems, getMyItem, onSubscribe, updateSubscribe, getHeaderContent, onKeyrecieve, onNotiKiwoom
+    deleteItem, onResign, getMyItems, getMyItem, onSubscribe, updateSubscribe, getHeaderContent, onKeyrecieve, onNotiKiwoom, editContract, editPay
 };
