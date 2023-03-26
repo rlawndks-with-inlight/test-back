@@ -685,7 +685,7 @@ const getUserToken = (req, res) => {
             let user_level = decode.user_level;
             let profile_img = decode.profile_img;
             let type = decode.type;
-            res.send({ id, pk, nickname, phone, user_level, profile_img, type })
+            res.send({ id, pk, name, phone, user_level, profile_img, type })
         }
         else {
             res.send({
