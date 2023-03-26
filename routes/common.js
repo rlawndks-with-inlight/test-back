@@ -783,45 +783,49 @@ const updateUser = async (req, res) => {
         const id = req.body.id ?? "";
         let pw = req.body.pw ?? "";
         const name = req.body.name ?? "";
-        const nickname = req.body.nickname ?? "";
         const phone = req.body.phone ?? "";
+        const id_number = req.body.id_number ?? "";
         const address = req.body.address ?? "";
+        const user_level = req.body.user_level ?? 0;
         const address_detail = req.body.address_detail ?? "";
         const zip_code = req.body.zip_code ?? "";
-        const account_holder = req.body.account_holder ?? "";
-        const bank_name = req.body.bank_name ?? "";
-        const account_number = req.body.account_number ?? "";
-        const manager_note = req.body.manager_note ?? "";
-
-        const user_level = req.body.user_level ?? 0;
-
+        const company_number = req.body.company_number ?? "";
+        const office_name = req.body.office_name ?? "";
+        const office_number = req.body.office_number ?? "";
+        const office_classification = req.body.office_classification ?? "";
+        const broker_classification = req.body.broker_classification ?? "";
+        const status_classification = req.body.status_classification ?? "";
         const pk = req.body.pk ?? 0;
-        if (pw) {
-            await crypto.pbkdf2(pw, salt, saltRounds, pwBytes, 'sha512', async (err, decoded) => {
-                // bcrypt.hash(pw, salt, async (err, hash) => {
-                let hash = decoded.toString('base64')
-                if (err) {
-                    console.log(err)
-                    return response(req, res, -200, "비밀번호 암호화 도중 에러 발생", [])
-                } else {
-                    await db.query("UPDATE user_table SET pw=? WHERE pk=?", [hash, pk], (err, result) => {
-                        if (err) {
-                            console.log(err)
-                            return response(req, res, -200, "비밀번호 insert중 에러발생", [])
-                        } else {
-                        }
-                    })
-                }
-            })
+        let body = {
+            id,
+            name,
+            phone,
+            id_number,
+            address,
+            user_level,
+            address_detail,
+            zip_code,
+            company_number,
+            office_name,
+            office_number,
+            office_classification,
+            broker_classification,
+            status_classification,
         }
-        await db.query("UPDATE user_table SET id=?, name=?, nickname=?, phone=?, user_level=?, address=?, address_detail=?, zip_code=?, account_holder=?, bank_name=?, account_number=?, manager_note=? WHERE pk=?", [id, name, nickname, phone, user_level, address, address_detail, zip_code, account_holder, bank_name, account_number, manager_note, pk], (err, result) => {
-            if (err) {
-                console.log(err)
-                return response(req, res, -200, "서버에러발생", [])
-            } else {
-                return response(req, res, 100, "success", [])
-            }
-        })
+        if (pw) {
+            pw = await makeHash(pw);
+            pw = pw?.data;
+            body['pw'] = pw;
+        }
+        let keys = Object.keys(body);
+        let values = [];
+        for(var i=  0;i<keys.length;i++){
+            values.push(body[keys[i]])
+        }
+        values.push(pk);
+        let result = await insertQuery(`UPDATE user_table SET ${keys.join('=?, ')}=? WHERE pk=?`,values);                
+        return response(req, res, 100, "success", [])
+
     } catch (err) {
         console.log(err)
         return response(req, res, -200, "서버 에러 발생", [])
