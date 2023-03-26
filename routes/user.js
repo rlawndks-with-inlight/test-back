@@ -48,9 +48,9 @@ const addContract = async (req, res) => {
         if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-        const { pay_type, deposit, monthly, document_src, address, address_detail, zip_code, start_date, pay_day } = req.body;
-        let result = await insertQuery('INSERT INTO contract_table (pay_type, deposit, monthly, document_src, address, address_detail, zip_code, start_date, pay_day, realtor_pk, step) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [pay_type, deposit, monthly, document_src, address, address_detail, zip_code, start_date, pay_day, decode?.pk, 1]);
+        const { pay_type, deposit, monthly, document_src, address, address_detail, zip_code, start_date, end_date, pay_day } = req.body;
+        let result = await insertQuery('INSERT INTO contract_table (pay_type, deposit, monthly, document_src, address, address_detail, zip_code, start_date, end_date, pay_day, realtor_pk, step) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [pay_type, deposit, monthly, document_src, address, address_detail, zip_code, start_date, end_date, pay_day, decode?.pk, 1]);
         return response(req, res, 100, "success", {
             result_pk: result?.result?.insertId
         });
