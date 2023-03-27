@@ -497,9 +497,9 @@ const kakaoCallBack = (req, res) => {
 const sendAligoSms = ({ receivers, message }) => {
     return axios.post('https://apis.aligo.in/send/', null, {
         params: {
-            key: 'xbyndmadqxp8cln66alygdq12mbpj7p7',
-            user_id: 'firstpartner',
-            sender: '1522-1233',
+            key: 'neop9fa86bgrbim08pq4r9butgkza4c4',
+            user_id: 'onupayment',
+            sender: '010-4749-1981',
             receiver: receivers.join(','),
             msg: message
         },
@@ -513,6 +513,7 @@ const sendSms = (req, res) => {
         const content = req.body.content;
         console.log(req.body)
         sendAligoSms({ receivers: receiver, message: content }).then((result) => {
+            console.log(result)
             if (result.result_code == '1') {
                 return response(req, res, 100, "success", [])
             } else {
