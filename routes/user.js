@@ -91,16 +91,8 @@ const updateContract = async (req, res) => {
 }
 const getHomeContent = async (req, res) => {
     try {
-        const decode = checkLevel(req.cookies.token, 0);
-        if (!decode) {
-            return response(req, res, -150, "권한이 없습니다.", [])
-        }
+        
         let result_list = [];
-        let user_level_list = [0,5,10];
-        let user_where_sql = "";
-        if(user_level_list.includes(decode?.user_level)){
-            user_where_sql = `WHERE ${getEnLevelByNum(decode?.user_level)}_pk=${decode?.pk}`;
-        }
         let sql_list = [
             { table: 'setting', sql: 'SELECT * FROM setting_table', type: 'obj' },
             { table: 'item_category', sql: `SELECT * FROM item_category_table WHERE status=1 ORDER BY sort DESC`, type: 'list' },
