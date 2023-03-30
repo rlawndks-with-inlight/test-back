@@ -102,10 +102,10 @@ const getHomeContent = async (req, res) => {
             user_where_sql = `WHERE ${getEnLevelByNum(decode?.user_level)}_pk=${decode?.pk}`;
         }
         let sql_list = [
-            { table: 'notice', sql: 'SELECT notice_table.*, user_table.nickname FROM notice_table LEFT JOIN user_table ON notice_table.user_pk=user_table.pk WHERE notice_table.status=1 ORDER BY notice_table.sort DESC LIMIT 2', type: 'list' },
             { table: 'setting', sql: 'SELECT * FROM setting_table', type: 'obj' },
-            { table: 'contract', sql: `SELECT * FROM v_contract ${user_where_sql} ORDER BY pk DESC LIMIT 5`, type: 'list' },
-            { table: 'pay', sql: `SELECT * FROM v_pay ${user_where_sql} ORDER BY pk DESC LIMIT 5`, type: 'list' },
+            { table: 'item_category', sql: `SELECT * FROM item_category_table WHERE status=1 ORDER BY sort DESC`, type: 'list' },
+            { table: 'item', sql: `SELECT * FROM item_table WHERE status=1 ORDER BY sort DESC LIMIT 4`, type: 'list' },
+            { table: 'user', sql: `SELECT * FROM user_table WHERE user_level=0 ORDER BY pk DESC LIMIT 12`, type: 'list' },
         ];
 
         for (var i = 0; i < sql_list.length; i++) {

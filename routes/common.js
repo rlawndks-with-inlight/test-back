@@ -163,23 +163,15 @@ const onSignUp = async (req, res) => {
             id,
             pw,
             name,
-            id_number,
             nickname,
             phone,
             address,
             address_detail,
             zip_code,
             user_level,
-            type,
             profile_img,
-            company_number,
-            office_name,
-            office_number,
-            office_classification,
-            broker_classification,
-            status_classification,
         }
-        let type_number = ['user_level', 'type']
+        let type_number = ['user_level'];
         let insertKeys = Object.keys(insert_obj);
         let insertValues = [];
         for (var i = 0; i < insertKeys.length; i++) {
