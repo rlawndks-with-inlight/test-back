@@ -13,7 +13,7 @@ const storage = multer.diskStorage({
 const fileFilter = (req, file, cb) => {
         let typeArray = file.mimetype.split('/')
         let filetype = typeArray[1]
-        if (filetype == 'jpg' || filetype == 'png' || filetype == 'gif' || filetype == 'jpeg' || filetype == 'bmp' || filetype == 'mp4' || filetype == 'avi' || filetype == 'webp' || filetype == 'ico')
+        if (filetype == 'jpg' || filetype == 'png' || filetype == 'gif' || filetype == 'jpeg' || filetype == 'bmp' || filetype == 'mp4' || filetype == 'avi' || filetype == 'webp' || filetype == 'ico'|| filetype == 'svg')
                 return cb(null, true)
 
         console.log((file.fieldname === 'image') ? '광고 ' : '상품 ' + '파일 확장자 제한: ', filetype)
