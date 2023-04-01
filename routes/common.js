@@ -133,9 +133,9 @@ const onSignUp = async (req, res) => {
             address,
             address_detail,
             zip_code,
-            user_level,
             type,
             profile_img,
+            parent_id,
             company_number,
             office_name,
             office_number,
@@ -143,10 +143,9 @@ const onSignUp = async (req, res) => {
             broker_classification,
             status_classification,
         } = req.body;
+        let user_level = req.body.user_level ?? 0;
         let pw = req.body.pw ?? "";
-
         let sql = "SELECT * FROM user_table WHERE id=? ";
-
         let find_user = await dbQueryList(`SELECT * FROM user_table WHERE id=?`, [id]);
         find_user = find_user?.result;
         if (find_user.length > 0) {
@@ -157,6 +156,7 @@ const onSignUp = async (req, res) => {
         if (find_phone.length > 0) {
             return response(req, res, -100, "휴대폰번호가 중복됩니다.", []);
         }
+
         pw = await makeHash(pw);
         pw = pw?.data;
         let insert_obj = {
@@ -170,6 +170,24 @@ const onSignUp = async (req, res) => {
             zip_code,
             user_level,
             profile_img,
+        }
+        if (
+            !user_level ||
+            user_level == 0 ||
+            user_level == 10 ||
+            user_level == 15 ||
+            user_level == 20
+        ) {
+            let parent_user = await dbQueryList(`SELECT * FROM user_table WHERE id=?`, [parent_id]);
+            parent_user = parent_user?.result[0];
+            if(!parent_user){
+                return response(req, res, -100, "존재하지 않는 추천아이디 입니다.", []);
+            }
+            if(user_level >= parent_user?.user_level){
+                return response(req, res, -100, "추천인 레벨이 가입유저보다 낮습니다.", []);
+            }
+            insert_obj['parent_pk'] = parent_user?.pk;
+            insert_obj['parent_id'] = parent_user?.id;
         }
         let type_number = ['user_level'];
         let insertKeys = Object.keys(insert_obj);
@@ -190,6 +208,120 @@ const onSignUp = async (req, res) => {
     } catch (err) {
         console.log(err);
         await db.rollback();
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
+const updateUser = async (req, res) => {
+    try {
+        const id = req.body.id ?? "";
+        let pw = req.body.pw ?? "";
+        const name = req.body.name ?? "";
+        const nickname = req.body.nickname ?? "";
+        const phone = req.body.phone ?? "";
+        const profile_img = req.body.profile_img ?? "";
+        const address = req.body.address ?? "";
+        const user_level = req.body.user_level ?? 0;
+        const address_detail = req.body.address_detail ?? "";
+        const zip_code = req.body.zip_code ?? "";
+        const company_number = req.body.company_number ?? "";
+        const office_name = req.body.office_name ?? "";
+        const office_number = req.body.office_number ?? "";
+        const office_classification = req.body.office_classification ?? "";
+        const broker_classification = req.body.broker_classification ?? "";
+        const status_classification = req.body.status_classification ?? "";
+        const parent_id = req.body.parent_id ?? "";
+        const pk = req.body.pk ?? 0;
+        let body = {
+            id,
+            pw,
+            name,
+            nickname,
+            phone,
+            address,
+            address_detail,
+            zip_code,
+            user_level,
+            profile_img,
+        }
+        if (pw) {
+            pw = await makeHash(pw);
+            pw = pw?.data;
+            body['pw'] = pw;
+        }
+        if (
+            user_level == 0 ||
+            user_level == 10 ||
+            user_level == 15 ||
+            user_level == 20
+        ) {
+            let parent_user = await dbQueryList(`SELECT * FROM user_table WHERE id=?`, [parent_id]);
+            parent_user = parent_user?.result[0];
+            if(!parent_user){
+                return response(req, res, -100, "존재하지 않는 추천아이디 입니다.", []);
+            }
+            if(user_level >= parent_user?.user_level){
+                return response(req, res, -100, "추천인 레벨이 가입유저보다 낮습니다.", []);
+            }
+            body['parent_pk'] = parent_user?.pk;
+            body['parent_id'] = parent_user?.id;
+        }
+        let keys = Object.keys(body);
+        let values = [];
+        for (var i = 0; i < keys.length; i++) {
+            values.push(body[keys[i]])
+        }
+        values.push(pk);
+        let result = await insertQuery(`UPDATE user_table SET ${keys.join('=?, ')}=? WHERE pk=?`, values);
+        return response(req, res, 100, "success", [])
+
+    } catch (err) {
+        console.log(err)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
+const getUserDepth = (user_obj, user_) =>{
+    let depth = 0;
+    let user = user_;
+    for(var i=0;i<1000;i++){
+        if(user?.user_level==25){
+            break;
+        }else{
+            depth++;
+            user = user_obj[user?.parent_pk];
+        }
+    }
+    return depth;
+}
+const getGenealogy = async (req, res) => {
+    try {
+        const decode = checkLevel(req.cookies.token, 0);
+        if (!decode) {
+            return response(req, res, -150, "권한이 없습니다.", [])
+        }
+        let users = await dbQueryList(`SELECT * FROM user_table WHERE user_level < 40 ORDER BY user_level DESC`);
+        users = users?.result;
+        let user_obj = {};
+        for(var i = 0;i<users.length;i++){
+            user_obj[users[i]?.pk] = users[i];
+        }
+        for(var i = 0;i<users.length;i++){
+            users[i]['depth'] = await getUserDepth(user_obj, users[i]);
+        }
+        let depth_list = [];
+        for(var i=0;i<1000;i++){
+            depth_list[i] = {};
+        }
+                    for (var i = 0; i < users.length; i++) {
+                        if (!depth_list[users[i]?.depth][`${users[i]?.parent_pk}`]) {
+                            depth_list[users[i]?.depth][`${users[i]?.parent_pk}`] = [];
+                        }
+                        depth_list[users[i]?.depth][`${users[i]?.parent_pk}`].push(users[i]);
+                        depth_list[users[i]?.depth + 1][`${users[i]?.pk}`] = [];
+                    }
+                return response(req, res, 100, "success", { data: depth_list, mine: {} });
+          
+    } catch (err) {
+        console.log(err)
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
@@ -771,59 +903,7 @@ const getUsers = (req, res) => {
     }
 }
 
-const updateUser = async (req, res) => {
-    try {
-        const id = req.body.id ?? "";
-        let pw = req.body.pw ?? "";
-        const name = req.body.name ?? "";
-        const phone = req.body.phone ?? "";
-        const id_number = req.body.id_number ?? "";
-        const address = req.body.address ?? "";
-        const user_level = req.body.user_level ?? 0;
-        const address_detail = req.body.address_detail ?? "";
-        const zip_code = req.body.zip_code ?? "";
-        const company_number = req.body.company_number ?? "";
-        const office_name = req.body.office_name ?? "";
-        const office_number = req.body.office_number ?? "";
-        const office_classification = req.body.office_classification ?? "";
-        const broker_classification = req.body.broker_classification ?? "";
-        const status_classification = req.body.status_classification ?? "";
-        const pk = req.body.pk ?? 0;
-        let body = {
-            id,
-            name,
-            phone,
-            id_number,
-            address,
-            user_level,
-            address_detail,
-            zip_code,
-            company_number,
-            office_name,
-            office_number,
-            office_classification,
-            broker_classification,
-            status_classification,
-        }
-        if (pw) {
-            pw = await makeHash(pw);
-            pw = pw?.data;
-            body['pw'] = pw;
-        }
-        let keys = Object.keys(body);
-        let values = [];
-        for(var i=  0;i<keys.length;i++){
-            values.push(body[keys[i]])
-        }
-        values.push(pk);
-        let result = await insertQuery(`UPDATE user_table SET ${keys.join('=?, ')}=? WHERE pk=?`,values);                
-        return response(req, res, 100, "success", [])
 
-    } catch (err) {
-        console.log(err)
-        return response(req, res, -200, "서버 에러 발생", [])
-    }
-}
 
 const getHeaderContent = async (req, res) => {
     try {
@@ -1140,7 +1220,7 @@ const updateItem = async (req, res) => {
         delete body['reason_correction'];
         delete body['manager_note'];
         let keys = Object.keys(body);
-        if(keys.length==0){
+        if (keys.length == 0) {
             return response(req, res, 200, "success", []);
         }
         let values = [];
@@ -1704,24 +1784,24 @@ const editContract = async (req, res) => {
         let users = await dbQueryList(`SELECT pk, id, user_level FROM user_table`);
         users = users?.result;
         let user_obj = {};
-        for(var i = 0;i<users.length;i++){
+        for (var i = 0; i < users.length; i++) {
             user_obj[users[i]?.id] = users[i];
         }
-        if(!user_obj[realtor_id] || user_obj[realtor_id]?.user_level != 10){
+        if (!user_obj[realtor_id] || user_obj[realtor_id]?.user_level != 10) {
             return response(req, res, -100, "공인중개사 아이디를 찾을 수 없습니다.", [])
-        }else{
+        } else {
             delete body['realtor_id'];
             body['realtor_pk'] = user_obj[realtor_id]?.pk;
         }
-        if(!user_obj[landlord_id] || user_obj[landlord_id]?.user_level != 5){
+        if (!user_obj[landlord_id] || user_obj[landlord_id]?.user_level != 5) {
             return response(req, res, -100, "임대인 아이디를 찾을 수 없습니다.", [])
-        }else{
+        } else {
             delete body['landlord_id'];
             body['landlord_pk'] = user_obj[landlord_id]?.pk;
         }
-        if(!user_obj[lessee_id] || user_obj[lessee_id]?.user_level != 0){
+        if (!user_obj[lessee_id] || user_obj[lessee_id]?.user_level != 0) {
             return response(req, res, -100, "임차인 아이디를 찾을 수 없습니다.", [])
-        }else{
+        } else {
             delete body['lessee_id'];
             body['lessee_pk'] = user_obj[lessee_id]?.pk;
         }
@@ -1729,26 +1809,26 @@ const editContract = async (req, res) => {
         let sql = "";
         let keys = Object.keys(body);
         let values = [];
-        for(var i = 0;i<keys.length;i++){
+        for (var i = 0; i < keys.length; i++) {
             values.push(body[keys[i]]);
         }
-        if(edit_category=='add'){
+        if (edit_category == 'add') {
             let questions = [];
-            for(var i = 0;i<keys.length;i++){
+            for (var i = 0; i < keys.length; i++) {
                 questions.push('?');
             }
             sql = ` INSERT INTO contract_table (${keys.join()}) VALUES (${questions.join()}) `;
-        }else{
+        } else {
             values.push(req.body.pk);
             sql = ` UPDATE contract_table SET ${keys.join('=?, ')}=? WHERE pk=?`;
         }
         await db.beginTransaction();
-        let result = await insertQuery(sql,values);
-        
-        if(body['landlord_appr']==1 && body['lessee_appr']==1){
-            if(req.body.pk){
+        let result = await insertQuery(sql, values);
+
+        if (body['landlord_appr'] == 1 && body['lessee_appr'] == 1) {
+            if (req.body.pk) {
                 body['pk'] = req.body.pk;
-            }else{
+            } else {
                 body['pk'] = result?.result?.insertId;
             }
             let contract = await dbQueryList(`SELECT * FROM contract_table WHERE pk=${body['pk']}`);
@@ -1788,7 +1868,7 @@ const editPay = async (req, res) => {
         };
         let { edit_category } = req.params;
         let contract = await dbQueryList(`SELECT * FROM contract_table WHERE pk=${contract_pk}`);
-        if(contract?.result.length == 0){
+        if (contract?.result.length == 0) {
             return response(req, res, -100, "존재하지 않는 계약고유번호 입니다.", [])
         }
         contract = contract?.result[0];
@@ -1799,20 +1879,20 @@ const editPay = async (req, res) => {
         let sql = "";
         let keys = Object.keys(body);
         let values = [];
-        for(var i = 0;i<keys.length;i++){
+        for (var i = 0; i < keys.length; i++) {
             values.push(body[keys[i]]);
         }
-        if(edit_category=='add'){
+        if (edit_category == 'add') {
             let questions = [];
-            for(var i = 0;i<keys.length;i++){
+            for (var i = 0; i < keys.length; i++) {
                 questions.push('?');
             }
             sql = ` INSERT INTO pay_table (${keys.join()}) VALUES (${questions.join()}) `;
-        }else{
+        } else {
             values.push(req.body.pk);
             sql = ` UPDATE pay_table SET ${keys.join('=?, ')}=? WHERE pk=?`;
         }
-        let result = await insertQuery(sql,values);
+        let result = await insertQuery(sql, values);
         return response(req, res, 100, "success", []);
     } catch (err) {
         console.log(err)
@@ -2570,5 +2650,5 @@ module.exports = {
     getUsers, getItems, getSetting, getVideo, onSearchAllItem, findIdByPhone, findAuthByIdAndPhone, getComments, getCommentsManager, getCountNotReadNoti, getNoticeAndAlarmLastPk, getAllPosts, getUserStatistics, addImageItems,//select
     onSignUp, addItem, addItemByUser, addNoteImage, addSetting, addComment, addAlarm, addPopup, insertUserMoneyByExcel,//insert 
     updateUser, updateItem, updateSetting, updateStatus, onTheTopItem, changeItemSequence, changePassword, updateComment, updateAlarm, updatePopup,//update
-    deleteItem, onResign, getMyItems, getMyItem, onSubscribe, updateSubscribe, getHeaderContent, onKeyrecieve, onNotiKiwoom, editContract, editPay
+    deleteItem, onResign, getMyItems, getMyItem, onSubscribe, updateSubscribe, getHeaderContent, onKeyrecieve, onNotiKiwoom, editContract, editPay, getGenealogy
 };
