@@ -1140,6 +1140,9 @@ const updateItem = async (req, res) => {
         delete body['reason_correction'];
         delete body['manager_note'];
         let keys = Object.keys(body);
+        if(keys.length==0){
+            return response(req, res, 200, "success", []);
+        }
         let values = [];
         let values_str = "";
         if (req.body.hash_list && req.body.hash_list?.length > 0) {
