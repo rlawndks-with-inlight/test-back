@@ -1145,7 +1145,7 @@ const addItemByUser = async (req, res) => {
         if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-        let permission_schema = ['request', 'review'];
+        let permission_schema = ['request', 'review','item'];
         if (!permission_schema.includes(req.body.table)) {
             return response(req, res, -150, "잘못된 접근입니다.", [])
         }
