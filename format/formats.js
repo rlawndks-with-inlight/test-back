@@ -43,17 +43,13 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_, decode) => {
     let page_sql = page_sql_;
     let order = order_;
     let where_str = where_str_;
-    if(schema=='academy_category'){
-        sql = ` SELECT academy_category_table.*, user_table.nickname AS master_nickname FROM academy_category_table`;
-        page_sql += ` LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk `;
-        sql += ` LEFT JOIN user_table ON academy_category_table.master_pk=user_table.pk `;
-        order = 'academy_category_table.sort'
-    }else if(schema=='item'){
+    if(schema=='item'){
         page_sql += ` LEFT JOIN item_category_table ON item_table.category_pk=item_category_table.pk `;
         page_sql += ` LEFT JOIN user_table ON item_table.user_pk=user_table.pk `;
-        sql = ` SELECT item_table.*, item_category_table.name AS category_name, user_table.nickname AS nickname, user_table.profile_img AS user_profile_img FROM item_table`;
+        sql = ` SELECT item_table.*, item_category_table.name AS category_name, user_table.nickname AS nickname, user_table.profile_img AS user_profile_img, wallet_table.img_src AS wallet_img, wallet_table.unit AS wallet_unit  FROM item_table`;
         sql += ` LEFT JOIN item_category_table ON item_table.category_pk=item_category_table.pk `;
         sql += ` LEFT JOIN user_table ON item_table.user_pk=user_table.pk `;
+        sql += ` LEFT JOIN wallet_table ON item_table.wallet_pk=wallet_table.pk `;
     }else if(schema=='notice'){
         sql = ` SELECT notice_table.*, user_table.nickname AS nickname FROM notice_table`;
         page_sql += ` LEFT JOIN user_table ON notice_table.user_pk=user_table.pk `;
