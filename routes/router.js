@@ -78,7 +78,6 @@ router.post('/requestcontractappr', requestContractAppr);
 router.post('/confirmcontractappr', confirmContractAppr);
 router.post('/onresetcontractuser', onResetContractUser);
 
-
 router.post('/updatesetting', upload.fields([{ name: 'content' }, { name: 'content2' }]), updateSetting);
 router.post('/addsetting', upload.single('master'), addSetting);
 router.get('/setting', getSetting);

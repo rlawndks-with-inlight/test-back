@@ -50,8 +50,10 @@ const sqlJoinFormat = (schema, sql_, order_, page_sql_, where_str_, decode) => {
         order = 'academy_category_table.sort'
     }else if(schema=='item'){
         page_sql += ` LEFT JOIN item_category_table ON item_table.category_pk=item_category_table.pk `;
-        sql = ` SELECT item_table.*, item_category_table.name AS category_name FROM item_table`;
+        page_sql += ` LEFT JOIN user_table ON item_table.user_pk=user_table.pk `;
+        sql = ` SELECT item_table.*, item_category_table.name AS category_name, user_table.nickname AS nickname, user_table.profile_img AS user_profile_img FROM item_table`;
         sql += ` LEFT JOIN item_category_table ON item_table.category_pk=item_category_table.pk `;
+        sql += ` LEFT JOIN user_table ON item_table.user_pk=user_table.pk `;
     }else if(schema=='notice'){
         sql = ` SELECT notice_table.*, user_table.nickname AS nickname FROM notice_table`;
         page_sql += ` LEFT JOIN user_table ON notice_table.user_pk=user_table.pk `;

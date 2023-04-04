@@ -180,10 +180,10 @@ const onSignUp = async (req, res) => {
         ) {
             let parent_user = await dbQueryList(`SELECT * FROM user_table WHERE id=?`, [parent_id]);
             parent_user = parent_user?.result[0];
-            if(!parent_user){
+            if (!parent_user) {
                 return response(req, res, -100, "존재하지 않는 추천아이디 입니다.", []);
             }
-            if(user_level >= parent_user?.user_level){
+            if (user_level >= parent_user?.user_level) {
                 return response(req, res, -100, "추천인 레벨이 가입유저보다 낮습니다.", []);
             }
             insert_obj['parent_pk'] = parent_user?.pk;
@@ -256,10 +256,10 @@ const updateUser = async (req, res) => {
         ) {
             let parent_user = await dbQueryList(`SELECT * FROM user_table WHERE id=?`, [parent_id]);
             parent_user = parent_user?.result[0];
-            if(!parent_user){
+            if (!parent_user) {
                 return response(req, res, -100, "존재하지 않는 추천아이디 입니다.", []);
             }
-            if(user_level >= parent_user?.user_level){
+            if (user_level >= parent_user?.user_level) {
                 return response(req, res, -100, "추천인 레벨이 가입유저보다 낮습니다.", []);
             }
             body['parent_pk'] = parent_user?.pk;
@@ -272,20 +272,20 @@ const updateUser = async (req, res) => {
         }
         values.push(pk);
         let result = await insertQuery(`UPDATE user_table SET ${keys.join('=?, ')}=? WHERE pk=?`, values);
-        return response(req, res, 100, "success", [])
+        return response(req, res, 100, "성공적으로 저장 되었습니다.", [])
 
     } catch (err) {
         console.log(err)
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-const getUserDepth = (user_obj, user_) =>{
+const getUserDepth = (user_obj, user_) => {
     let depth = 0;
     let user = user_;
-    for(var i=0;i<1000;i++){
-        if(user?.user_level==25){
+    for (var i = 0; i < 1000; i++) {
+        if (user?.user_level == 25) {
             break;
-        }else{
+        } else {
             depth++;
             user = user_obj[user?.parent_pk];
         }
@@ -301,25 +301,25 @@ const getGenealogy = async (req, res) => {
         let users = await dbQueryList(`SELECT * FROM user_table WHERE user_level < 40 ORDER BY user_level DESC`);
         users = users?.result;
         let user_obj = {};
-        for(var i = 0;i<users.length;i++){
+        for (var i = 0; i < users.length; i++) {
             user_obj[users[i]?.pk] = users[i];
         }
-        for(var i = 0;i<users.length;i++){
+        for (var i = 0; i < users.length; i++) {
             users[i]['depth'] = await getUserDepth(user_obj, users[i]);
         }
         let depth_list = [];
-        for(var i=0;i<1000;i++){
+        for (var i = 0; i < 1000; i++) {
             depth_list[i] = {};
         }
-                    for (var i = 0; i < users.length; i++) {
-                        if (!depth_list[users[i]?.depth][`${users[i]?.parent_pk}`]) {
-                            depth_list[users[i]?.depth][`${users[i]?.parent_pk}`] = [];
-                        }
-                        depth_list[users[i]?.depth][`${users[i]?.parent_pk}`].push(users[i]);
-                        depth_list[users[i]?.depth + 1][`${users[i]?.pk}`] = [];
-                    }
-                return response(req, res, 100, "success", { data: depth_list, mine: {} });
-          
+        for (var i = 0; i < users.length; i++) {
+            if (!depth_list[users[i]?.depth][`${users[i]?.parent_pk}`]) {
+                depth_list[users[i]?.depth][`${users[i]?.parent_pk}`] = [];
+            }
+            depth_list[users[i]?.depth][`${users[i]?.parent_pk}`].push(users[i]);
+            depth_list[users[i]?.depth + 1][`${users[i]?.pk}`] = [];
+        }
+        return response(req, res, 100, "success", { data: depth_list, mine: {} });
+
     } catch (err) {
         console.log(err)
         return response(req, res, -200, "서버 에러 발생", [])
@@ -1100,7 +1100,8 @@ const addItem = async (req, res) => {
             values_str += ", ?"
         }
         let table = req.body.table;
-        if (table == 'notice' || table == 'faq' || table == 'event') {
+        let use_user_pk_list = ['notice', 'faq', 'item'];
+        if (use_user_pk_list.includes(table)) {
             keys.push('user_pk');
             values.push(decode?.pk);
             values_str += ", ?"
@@ -1145,7 +1146,7 @@ const addItemByUser = async (req, res) => {
         if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
-        let permission_schema = ['request', 'review','item'];
+        let permission_schema = ['request', 'review', 'item'];
         if (!permission_schema.includes(req.body.table)) {
             return response(req, res, -150, "잘못된 접근입니다.", [])
         }
@@ -1178,7 +1179,8 @@ const addItemByUser = async (req, res) => {
             values_str += ", ?"
         }
         let table = req.body.table;
-        let use_user_pk = ['request', 'review'];
+        let use_user_pk = ['request', 'review', 'item'];
+        let use_sort_tables = ['item']
         if (use_user_pk.includes(table)) {
             keys.push('user_pk');
             values.push(decode?.pk);
@@ -1194,8 +1196,9 @@ const addItemByUser = async (req, res) => {
         let result = await insertQuery(sql, values);
 
         console.log(result)
-        //let result2 = await insertQuery(`UPDATE ${table}_table SET sort=? WHERE pk=?`, [result?.result?.insertId, result?.result?.insertId]);
-
+        if(use_sort_tables.includes(table)){
+            let result2 = await insertQuery(`UPDATE ${table}_table SET sort=? WHERE pk=?`, [result?.result?.insertId, result?.result?.insertId]);
+        }
         await db.commit();
         return response(req, res, 200, "success", []);
 
