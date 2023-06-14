@@ -68,5 +68,13 @@ if (is_test) {
 }
 
 app.get('/', (req, res) => {
-        res.sendFile(path.join(__dirname, 'public', 'index.html'));
+        const swaggerHtml = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
+        const swaggerCss = fs.readFileSync(path.join(__dirname, 'public', 'swagger.css'), 'utf8');
+      
+        const modifiedHtml = swaggerHtml.replace(
+          '<link rel="stylesheet" type="text/css" href="./swagger-ui.css">',
+          `<style>${swaggerCss}</style>`
+        );
+      
+        res.send(modifiedHtml);
       });
