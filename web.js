@@ -27,7 +27,7 @@ app.use(cookieParser());
 // app.use(passport.session());
 // passportConfig(passport);
 const schedule = require('node-schedule');
-let { swaggerUi, specs } = require('./swagger/swagger');
+const { swaggerUi, specs } = require('./swagger/swagger');
 const path = require('path');
 const { getItem } = require('./routes/common')
 app.set('/routes', __dirname + '/routes');
@@ -36,7 +36,9 @@ app.use('/config', express.static(__dirname + '/config'));
 app.use('/image', express.static(__dirname + '/image'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api', require('./routes/router'))
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs))
+const CSS_URL =
+  "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.1.0/swagger-ui.min.css";
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs, { customCssUrl: CSS_URL }))
 
 app.get('/', (req, res) => {
         console.log("back-end initialized")
@@ -68,13 +70,5 @@ if (is_test) {
 }
 
 app.get('/', (req, res) => {
-        const swaggerHtml = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
-        const swaggerCss = fs.readFileSync(path.join(__dirname, 'public', 'swagger.css'), 'utf8');
-      
-        const modifiedHtml = swaggerHtml.replace(
-          '<link rel="stylesheet" type="text/css" href="./swagger-ui.css">',
-          `<style>${swaggerCss}</style>`
-        );
-      
-        res.send(modifiedHtml);
+        res.sendFile(path.join(__dirname, 'public', 'index.html'));
       });
