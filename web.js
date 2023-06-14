@@ -27,7 +27,7 @@ app.use(cookieParser());
 // app.use(passport.session());
 // passportConfig(passport);
 const schedule = require('node-schedule');
-const { swaggerUi, specs }  = require('./swagger/swagger');
+const { swaggerUi, specs } = require('./swagger/swagger');
 const path = require('path');
 const { getItem } = require('./routes/common')
 app.set('/routes', __dirname + '/routes');
@@ -68,5 +68,5 @@ if (is_test) {
 }
 
 app.get('/', (req, res) => {
-        res.json({ message: `Server is running on port ${req.secure ? HTTPS_PORT : HTTP_PORT}` });
-});
+        res.sendFile(path.join(__dirname, 'public', 'index.html'));
+      });
