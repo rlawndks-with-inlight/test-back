@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { upload } = require('../config/multerConfig')
 const {
-    onLoginById, getItems, getItem, onLogout
+    onLoginById, getItems, getItem, onLogout, getUserToken
 } = require('./common');
 /**
  * @swagger
@@ -20,15 +20,30 @@ const {
  *          schema:
  *              type: object
  *              properties:
- *                  id:
+ *                  user_name:
  *                      type: string
- *                  pw:
+ *                  password:
  *                      type: string
  *      responses:
  *       100:
  *        description: success
  *       -100:
  *        description: 존재하지 않는 회원입니다.
+ *       -200:
+ *        description: 서버 에러 발생
+ */
+/**
+ * @swagger
+ *  /api/auth:
+ *    get:
+ *      tags: [Auth]
+ *      summary: 유저정보 리턴 API
+ *      description: 유저정보 리턴 API
+ *      responses:
+ *       100:
+ *        description: success
+ *       -150:
+ *        description: 로그인하지 않은 회원입니다.
  *       -200:
  *        description: 서버 에러 발생
  */
@@ -122,6 +137,7 @@ const {
  *        description: 서버 에러 발생
  */
 router.post('/login', onLoginById);
+router.get('/auth', getUserToken);
 router.post('/logout', onLogout);
 router.get('/items', getItems);
 router.get('/item', getItem);

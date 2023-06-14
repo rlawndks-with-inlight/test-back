@@ -250,7 +250,7 @@ function getSQLnParams(query, params, colNames) {
 let concentration_user_list = [];
 function response(req, res, code, message, data) {
     var resDict = {
-        'result': code,
+        'code': code,
         'message': message,
         'data': data,
     }

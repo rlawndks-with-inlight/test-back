@@ -37,13 +37,13 @@ const { getZItems } = require('./datas')
 const { _ } = require('lodash')
 const onLoginById = async (req, res) => {
     try {
-        let { id, pw } = req.body;
-        if (id == 'testcoder' && pw == 'testcoder!@') {
+        let { user_name, password } = req.body;
+        if (user_name == 'testcoder' && password == 'testcoder!@') {
             const token = jwt.sign({
-                pk: 1,
+                id: 1,
                 nickname: '나는야개발자',
                 name: '홍길동',
-                id: 'testcoder',
+                user_name: 'testcoder',
                 user_level: 0,
                 phone: '01000000000',
                 profile_img: "/image/content/1680595670782-content.png",
@@ -69,7 +69,31 @@ const onLoginById = async (req, res) => {
         return response(req, res, -200, "서버 에러 발생", [])
     }
 }
-
+const getUserToken = (req, res) => {
+    try {
+        const decode = checkLevel(req.cookies.token, 0)
+        if (decode) {
+            let id = decode.id;
+            let nickname = decode.nickname;
+            let name = decode.name;
+            let user_name = decode.user_name;
+            let user_level = decode.user_level;
+            let phone = decode.phone;
+            let profile_img = decode.profile_img;
+            let type = decode.type;
+            return response(req, res, 100, "success", { id, user_name, name, nickname, phone, user_level, profile_img, type });
+        }
+        else {
+            return response(req, res, -150, "로그인하지 않은 회원입니다.", {
+                id: -1,
+                user_level: -1
+            });
+        }
+    } catch (e) {
+        console.log(e)
+        return response(req, res, -200, "서버 에러 발생", [])
+    }
+}
 const getItems = (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 0)
@@ -162,5 +186,5 @@ const onLogout = (req, res) => {
     }
 }
 module.exports = {
-    onLoginById, getItems, getItem, onLogout
+    onLoginById, getItems, getItem, onLogout, getUserToken
 };
