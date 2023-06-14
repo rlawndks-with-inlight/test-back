@@ -1,4 +1,4 @@
-const swaggerUi = require('swagger-ui-express');
+let swaggerUi = require('swagger-ui-express');
 const swaggereJsdoc = require('swagger-jsdoc');
 
 const CSS_URL = "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.1.0/swagger-ui.min.css";
