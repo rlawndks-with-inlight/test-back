@@ -1,10 +1,8 @@
 //const { request } = require('express')
 const jwt = require('jsonwebtoken')
-const db = require('./config/db')
 const firebase = require("firebase-admin");
 const fcmNode = require("fcm-node");
 const serviceAccount = require("./config/privatekey_firebase.json");
-const { insertQuery } = require('./query-util');
 const crypto = require('crypto')
 const salt = "435f5ef2ffb83a632c843926b35ae7855bc2520021a73a043db41670bfaeb722"
 const saltRounds = 10
@@ -108,35 +106,7 @@ const categoryToNumber = (str) => {
         return -1;
     }
 }
-const queryPromise = (table, sql, type) => {
 
-    return new Promise(async (resolve, reject) => {
-        await db.query(sql, (err, result, fields) => {
-            if (err) {
-                console.log(sql)
-                console.log(err)
-                reject({
-                    code: -200,
-                    data: [],
-                    table: table
-                })
-            } else {
-                let type_ = type ?? 'list';
-                let result_ = undefined;
-                if (type_ == 'obj') {
-                    result_ = { ...result[0] };
-                } else {
-                    result_ = [...result];
-                }
-                resolve({
-                    code: 200,
-                    data: result_,
-                    table: table
-                })
-            }
-        })
-    })
-}
 const lowLevelException = {
     code: 403,
     message: "권한이 없습니다."
@@ -180,17 +150,7 @@ const logRequestResponse = (req, res, decode) => {
     } else {
         user_pk = -1;
     }
-    db.query(
-        "INSERT INTO log_table (request, response_result, response_message, request_ip, user_id, user_pk) VALUES (?, ?, ?, ?, ?, ?)",
-        [request, res?.result, res?.message, requestIp, user_id, user_pk],
-        (err, result, fields) => {
-            if (err)
-                console.log(err)
-            else {
-                //console.log(result)
-            }
-        }
-    )
+  
 
 }
 const tooMuchRequest = (num) => {
@@ -208,17 +168,7 @@ const logRequest = (req) => {
         body: req.body
     }
     request = JSON.stringify(request)
-    db.query(
-        "INSERT INTO log_information_tb (request, request_ip) VALUES (?, ?)",
-        [request, requestIp],
-        (err, result, fields) => {
-            if (err)
-                console.log(err)
-            else {
-                console.log(result)
-            }
-        }
-    )
+  
 }
 const logResponse = (req, res) => {
     const requestIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip
@@ -466,115 +416,14 @@ const commarNumber = (num) => {
     }
     return result + decimal;
 }
-const initialPay = async (contract) => {
-    if (contract['is_confirm'] == 1) {
-        return;
-    }
-    let result = await insertQuery(`UPDATE contract_table SET is_confirm=1 WHERE pk=?`, [contract[`pk`]]);
-    if (
-        contract[`${getEnLevelByNum(0)}_appr`] == 1 &&
-        contract[`${getEnLevelByNum(5)}_appr`] == 1 &&
-        contract[`deposit`] > 0 &&
-        contract[`monthly`] > 0
-    ) {
-        let result2 = await insertQuery(`INSERT pay_table (${getEnLevelByNum(0)}_pk, ${getEnLevelByNum(5)}_pk, ${getEnLevelByNum(10)}_pk, price, pay_category, status, contract_pk, day) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                contract[`${getEnLevelByNum(0)}_pk`],
-                contract[`${getEnLevelByNum(5)}_pk`],
-                contract[`${getEnLevelByNum(10)}_pk`],
-                contract[`deposit`],
-                1,
-                0,
-                contract[`pk`],
-                returnMoment().substring(0, 10)
-            ])
-        let now = returnMoment().substring(0, 10);
-        if (now >= `${contract.start_date}`) {//월세 관련
-            let pay_list = [];
-            let contract_day = `${contract['pay_day'] >= 10 ? `${contract['pay_day']}` : `0${contract['pay_day']}`}`
-            let pay_date = contract.start_date.substring(0, 7) + `-${contract_day}`;
-            for (var i = 0; i < 100000; i++) {
-                //console.log(date_format)'
-                if (pay_date.includes('-12-')) {
-                    pay_date = pay_date.split('-');
-                    pay_date = `${(parseInt(pay_date[0]) + 1)}-01-${contract_day}`
-                } else {
-                    pay_date = pay_date.split('-');
-                    pay_date[1] = parseInt(pay_date[1]) + 1;
-                    pay_date[1] = `${pay_date[1] >= 10 ? pay_date[1] : `0${pay_date[1]}`}`
-                    pay_date = `${pay_date[0]}-${(pay_date[1])}-${contract_day}`
-                }
-                if (pay_date <= now && pay_date >= contract.start_date) {
-                    pay_list.push(
-                        [
-                            contract[`${getEnLevelByNum(0)}_pk`],
-                            contract[`${getEnLevelByNum(5)}_pk`],
-                            contract[`${getEnLevelByNum(10)}_pk`],
-                            contract[`monthly`],
-                            0,
-                            0,
-                            contract[`pk`],
-                            pay_date
-                        ]
-                    )
-                } else {
-                    if (pay_date > now) {
-                        break;
-                    }
-                }
-            }
-            if (pay_list.length > 0) {
-                let result = await insertQuery(`INSERT pay_table (${getEnLevelByNum(0)}_pk, ${getEnLevelByNum(5)}_pk, ${getEnLevelByNum(10)}_pk, price, pay_category, status, contract_pk, day) VALUES ?`, [pay_list]);
-            }
-        }
-    }
-}
-const insertItemHistory = async (decode, item_pk, type, price) => {
-    let obj = {
-        user_pk: decode?.pk,
-        item_pk,
-        type,
-        price,
-    }
-    let keys = Object.keys(obj);
-    let values = [];
-    let result_keys = [];
-    for (var i = 0; i < keys.length; i++) {
-        if (obj[keys[i]] || typeof obj[keys[i]] == 'number') {
-            values.push(obj[keys[i]]);
-            result_keys.push(keys[i]);
-        }
-    }
-    let querstions = getQuestions(result_keys.length)
-    let result = await insertQuery(`INSERT INTO history_table (${result_keys.join()}) VALUES (${querstions.join()})`, values);
-}
-const getStringHistoryByNum = (user, num, price, item, is_detail) => {
-    if (num == 0)
-        return `${is_detail ? '' : `${user?.nickname} 이(가) `}${is_detail ? `${item?.name}#${item?.pk}` : ''} 상품을 조회 하였습니다.`;
-    else if (num == 5)
-        return `${is_detail ? '' : `${user?.nickname} 이(가) `}${is_detail ? `${item?.name}#${item?.pk}` : ''} 상품에 좋아요를 눌렀습니다.`
-    else if (num == 6)
-        return `${is_detail ? '' : `${user?.nickname} 이(가) `}${is_detail ? `${item?.name}#${item?.pk}` : ''} 상품 좋아요를 취소 하였습니다.`
-    else if (num == 10)
-        return `${is_detail ? '' : `${user?.nickname} 이(가) `}${is_detail ? `${item?.name}#${item?.pk}` : ''} 상품을 ${commarNumber(price)} ${is_detail ? item?.wallet_unit : item?.wallet?.unit}에 경매 하였습니다.`
-    else if (num == 11)
-        return `${is_detail ? '' : `${user?.nickname} 이(가) `}${is_detail ? `${item?.name}#${item?.pk}` : ''} 상품 경매를 취소 하였습니다.`
-    else if (num == 15)
-        return ` ${is_detail ? `${item?.name}#${item?.pk}` : ''} 상품이 수정 되었습니다.`
-    else if (num == 20)
-        return ` ${is_detail ? `${item?.name}#${item?.pk}` : ''} 상품 경매가 마감 되었습니다.`
-    else if (num == 25)
-        return `${is_detail ? '' : `${user?.nickname} 이(가) `}${is_detail ? `${item?.name}#${item?.pk}` : ''} 상품을 ${commarNumber(price)} ${is_detail ? item?.wallet_unit : item?.wallet?.unit}에 구매 하였습니다.`
-    else if (num == 26)
-        return `${is_detail ? '' : `${user?.nickname} 이(가) `}${is_detail ? `${item?.name}#${item?.pk}` : ''} 상품을 구매 취소 하였습니다.`
-    else
-        return '---'
-}
+
+
+
 module.exports = {
-    checkLevel, lowLevelException, nullRequestParamsOrBody,
+    checkLevel,
     logRequestResponse, logResponse, logRequest,
     getUserPKArrStrWithNewPK, isNotNullOrUndefined,
     namingImagesPath, getSQLnParams,
     nullResponse, lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber, categoryToNumber, sendAlarm, makeMaxPage, tooMuchRequest,
-    queryPromise, makeHash, commarNumber, getKewordListBySchema, getEnLevelByNum, getKoLevelByNum, getQuestions, getNumByEnLevel, initialPay, insertItemHistory, getStringHistoryByNum
+     makeHash, commarNumber, getKewordListBySchema, getEnLevelByNum, getKoLevelByNum, getQuestions, getNumByEnLevel
 }

@@ -10,20 +10,13 @@ const crypto = require('crypto')
 const jwt = require('jsonwebtoken')
 const when = require('when')
 let iconv = require('iconv-lite');
-const { checkLevel, getSQLnParams, getUserPKArrStrWithNewPK,
-    isNotNullOrUndefined, namingImagesPath, nullResponse,
-    lowLevelResponse, response, removeItems, returnMoment, formatPhoneNumber,
+const { checkLevel, response, removeItems, returnMoment, formatPhoneNumber,
     categoryToNumber, sendAlarm, makeMaxPage, queryPromise, makeHash, commarNumber, getKewordListBySchema,
     getQuestions, initialPay
 } = require('../util')
-const {
-    getRowsNumWithKeyword, getRowsNum, getAllDatas,
-    getDatasWithKeywordAtPage, getDatasAtPage,
-    getKioskList, getItemRows, getItemList, dbQueryList, dbQueryRows, insertQuery, getTableAI
-} = require('../query-util')
+
 const macaddress = require('node-macaddress');
 
-const db = require('../config/db')
 const { upload } = require('../config/multerConfig')
 const { Console, table } = require('console')
 const { abort } = require('process')
@@ -35,13 +28,12 @@ const pwBytes = 64
 const jwtSecret = "djfudnsqlalfKeyFmfRkwu"
 const { format, formatDistance, formatRelative, subDays } = require('date-fns')
 const geolocation = require('geolocation')
-const { sqlJoinFormat, listFormatBySchema, myItemSqlJoinFormat } = require('../format/formats')
 const { param } = require('jquery')
 const kakaoOpt = {
     clientId: '4a8d167fa07331905094e19aafb2dc47',
     redirectUri: 'http://172.30.1.19:8001/api/kakao/callback',
 };
-const {getZItems} = require('./datas')
+const { getZItems } = require('./datas')
 const { _ } = require('lodash')
 const onLoginById = async (req, res) => {
     try {
@@ -81,7 +73,7 @@ const onLoginById = async (req, res) => {
 const getItems = (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 0)
-        if(!decode){
+        if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
         let {
@@ -142,7 +134,7 @@ const getItems = (req, res) => {
 const getItem = (req, res) => {
     try {
         const decode = checkLevel(req.cookies.token, 0)
-        if(!decode){
+        if (!decode) {
             return response(req, res, -150, "권한이 없습니다.", [])
         }
         const { id } = req.query;

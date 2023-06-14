@@ -3,7 +3,6 @@ const express = require('express')
 const app = express()
 const mysql = require('mysql')
 const cors = require('cors')
-const db = require('./config/db')
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 const https = require('https');
@@ -15,11 +14,7 @@ const im = require('imagemagick');
 const sharp = require('sharp')
 //passport, jwt
 const jwt = require('jsonwebtoken')
-const { checkLevel, logRequestResponse, isNotNullOrUndefined,
-        namingImagesPath, nullResponse, lowLevelResponse, response,
-        returnMoment, sendAlarm, categoryToNumber, tooMuchRequest,
-        getEnLevelByNum, 
-        insertItemHistory} = require('./util')
+
 app.use(bodyParser.json({ limit: '100mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '100mb' }));
 //multer
@@ -34,9 +29,7 @@ app.use(cookieParser());
 const schedule = require('node-schedule');
 const { swaggerUi, specs }  = require('./swagger/swagger');
 const path = require('path');
-const { insertQuery } = require('./query-util')
 const { getItem } = require('./routes/common')
-const { objFormatBySchema } = require('./format/formats')
 app.set('/routes', __dirname + '/routes');
 app.use('/config', express.static(__dirname + '/config'));
 //app.use('/image', express.static('./upload'));
