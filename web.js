@@ -27,7 +27,7 @@ app.use(cookieParser());
 // app.use(passport.session());
 // passportConfig(passport);
 const schedule = require('node-schedule');
-const { swaggerUi, specs } = require('./swagger/swagger');
+let { swaggerUi, specs } = require('./swagger/swagger');
 const path = require('path');
 const { getItem } = require('./routes/common')
 app.set('/routes', __dirname + '/routes');
