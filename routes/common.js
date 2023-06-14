@@ -37,6 +37,7 @@ const { getZItems } = require('./datas')
 const { _ } = require('lodash')
 const onLoginById = async (req, res) => {
     try {
+        console.log(req.body)
         let { user_name, password } = req.body;
         if (user_name == 'testcoder' && password == 'testcoder!@') {
             const token = jwt.sign({
@@ -107,6 +108,9 @@ const getItems = (req, res) => {
             page_cut,
             user_id
         } = req.query;
+        user_id = parseInt(user_id);
+        page = parseInt(page);
+        page_cut = parseInt(page_cut);
 
         let result = [];
         let count = 0;
@@ -163,7 +167,7 @@ const getItem = (req, res) => {
         }
         const { id } = req.query;
         let z_item = getZItems();
-        let item = _.find(z_item, { id: id });
+        let item = _.find(z_item, { id: parseInt(id) });
         if (item) {
             return response(req, res, 100, "success", item);
         } else {

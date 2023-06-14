@@ -11,19 +11,20 @@ const {
  *      tags: [Auth]
  *      summary: 로그인 API
  *      description: 로그인 API
- *      produces:
- *      - application/json
- *      parameters:
- *        - in: "body"
- *          name: "body"
+ *      requestBody:
+ *          x-name: body
  *          required: true
- *          schema:
- *              type: object
- *              properties:
- *                  user_name:
- *                      type: string
- *                  password:
- *                      type: string
+ *          content:
+ *              application/json: 
+ *                  schema:
+ *                      required:
+ *                      - user_name
+ *                      - password
+ *                      properties:
+ *                          user_name:
+ *                              type: string
+ *                          password:
+ *                              type: string
  *      responses:
  *       100:
  *        description: success
