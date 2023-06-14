@@ -34,6 +34,7 @@ app.set('/routes', __dirname + '/routes');
 app.use('/config', express.static(__dirname + '/config'));
 //app.use('/image', express.static('./upload'));
 app.use('/image', express.static(__dirname + '/image'));
+app.use('/public/css', express.static('public/css'));
 app.use('/api', require('./routes/router'))
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs))
 app.get('/', (req, res) => {
