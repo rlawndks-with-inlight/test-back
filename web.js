@@ -37,7 +37,7 @@ app.use('/image', express.static(__dirname + '/image'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api', require('./routes/router'))
 const CSS_URL =
-  "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.1.0/swagger-ui.min.css";
+  "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.0/swagger-ui.min.css";
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs, { customCssUrl: CSS_URL }))
 
 app.get('/', (req, res) => {
